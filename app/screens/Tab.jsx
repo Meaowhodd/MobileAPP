@@ -3,19 +3,17 @@ import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import React from "react";
-// ถ้าไฟล์ Book/Home/Inbox/Profile อยู่โฟลเดอร์เดียวกัน ใช้ ./ ได้เลย
+
 import BookScreen from "./Book";
 import HomeScreen from "./Home";
 import InboxScreen from "./Inbox";
 import ProfileScreen from "./Profile";
-// (ถ้ามี ThemeContext และวางนอก app/) import { useTheme } from "../../context/ThemeContext";
+
 
 const Tab = createBottomTabNavigator();
 
 export default function Tabs() {
-  // ถ้ามีธีม:
-  // const { theme } = useTheme();
+  
 
   return (
     <Tab.Navigator
@@ -25,9 +23,12 @@ export default function Tabs() {
         tabBarShowLabel: true,
         tabBarLabelStyle: { fontSize: 12 },
         tabBarStyle: {
-          // ถ้ามีธีม: backgroundColor: theme === "light" ? "#fff" : "#111",
+          
           backgroundColor: "#F2F2F2",
-          height: 60,
+          height: 62,
+          borderTopWidth: 0,
+          elevation: 10, // Shadow effect
+          paddingBottom: 10
         },
         tabBarActiveTintColor: "#1f66f2",
         tabBarInactiveTintColor: "#777",
@@ -47,7 +48,7 @@ export default function Tabs() {
         component={BookScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Entypo name="compass" size={size} color={color} />
+            <Ionicons name="bookmarks" size={size} color={color} />
           ),
         }}
       />
@@ -56,7 +57,7 @@ export default function Tabs() {
         component={InboxScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="lightning-bolt" size={size} color={color} />
+            <MaterialCommunityIcons name="bell" size={size} color={color} />
           ),
         }}
       />
