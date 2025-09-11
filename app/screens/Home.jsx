@@ -37,7 +37,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.itemtext}>Room : A301</Text>
                 <Text style={styles.itemtext}>People : 8-10</Text>
-                <Text style={styles.itemtext}>Floor : 3</Text>
+                <Text style={styles.itemtext}>Floor : 5</Text>
               </View>
               <View>
                 <TouchableOpacity style={styles.itembutton}>
