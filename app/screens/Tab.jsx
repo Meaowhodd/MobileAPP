@@ -7,7 +7,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import BookScreen from "./Book";
 import HomeScreen from "./Home";
 import InboxScreen from "./Inbox";
-import ProfileScreen from "./Profile";
+import ProfileStack from "./ProfileStack";
 
 
 const Tab = createBottomTabNavigator();
@@ -63,7 +63,7 @@ export default function Tabs() {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />

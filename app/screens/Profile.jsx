@@ -7,7 +7,11 @@ import {
   View,
 } from "react-native";
 
+import { useNavigation } from "@react-navigation/native";
+
 export default function ProfileScreen() {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -18,6 +22,7 @@ export default function ProfileScreen() {
         <View style={{ margin: 50 }}>
           <View style={{ justifyContent: "center", alignItems: "center" }}>
             <Text style={styles.subheadertext}>John Doe</Text>
+            <View style={styles.divider}></View>
             <View style={styles.profileimagecontainerlarge}>
               <Image
                 source={{
@@ -65,6 +70,7 @@ export default function ProfileScreen() {
               marginLeft: 40,
               marginRight: 40,
             }}
+            onPress={() => navigation.navigate("ProfileSettingScreen")}
           >
             <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
               Edit Your Profile
@@ -155,5 +161,13 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 10,
     borderColor: "black",
     padding: 10,
+  },
+
+  divider: {
+    borderBottomColor: "#000000ff",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginTop: 8,
+    marginBottom: 8,
+    alignSelf: "stretch",
   },
 });
