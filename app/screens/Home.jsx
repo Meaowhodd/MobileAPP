@@ -1,10 +1,15 @@
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
-
+import { router } from 'expo-router';
+import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 export default function HomeScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerpic}>
+            <TouchableOpacity onPress={() => router.push({ pathname: "/screens/Login" })}>
+              <View style={styles.loginbutton}>
+                <Text style={styles.itemtext}>LoginTest</Text>
+              </View>
+            </TouchableOpacity>
             <Image source={require('../../assets/images/profile.jpg')} style={styles.img} />
           </View>
           <Text style={styles.headertext}>Meeting Rooms</Text>
@@ -108,6 +113,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#1f66f2',
     padding: 10,
     borderRadius: 8,
+  },
+
+  loginbutton: {
+    marginTop: 'auto',
+    backgroundColor: '#3decffff',
+    padding: 10,
+    borderRadius: 8,
+    marginRight: 10,
   },
 
   header: {

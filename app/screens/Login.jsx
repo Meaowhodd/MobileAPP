@@ -1,7 +1,8 @@
+import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Eye, EyeOff } from "lucide-react-native"; // ไอคอน
 import { useState } from "react";
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -38,11 +39,11 @@ export default function LoginScreen() {
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            {showPassword ? (
-              <EyeOff size={20} color="white" />
-            ) : (
-              <Eye size={20} color="white" />
-            )}
+            <Feather
+              name={showPassword ? "eye-off" : "eye"} // 👈 ใช้ eye/eye-off
+              size={20}
+              color="white"
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -105,3 +106,5 @@ export default function LoginScreen() {
     </LinearGradient>
   );
 }
+
+
