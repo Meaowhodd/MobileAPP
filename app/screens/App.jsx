@@ -1,7 +1,7 @@
 import { createStackNavigator } from "@react-navigation/stack";
+import Tabs from "../(tabs)"; // ✅ ใช้ path โฟลเดอร์แทนไฟล์
 import LoginScreen from "./Login";
 import RegisterScreen from "./Register";
-import Tabs from "./Tab";
 import WelcomeScreen from "./Welcome";
 
 const Stack = createStackNavigator();
