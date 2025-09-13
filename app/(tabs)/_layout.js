@@ -24,7 +24,7 @@ export default function TabsLayout() {
     >
       {/* หน้าแรกให้ใช้ index.jsx */}
       <Tabs.Screen
-        name="index"
+        name="Home"
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
@@ -32,8 +32,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* ถ้าคุณยังมี Home.jsx อยู่ในโฟลเดอร์เดียวกัน ให้ซ่อนไว้กันซ้ำ */}
-      <Tabs.Screen name="Home" options={{ href: null }} />
 
       <Tabs.Screen
         name="Book"
