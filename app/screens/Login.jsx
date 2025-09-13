@@ -1,107 +1,173 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Eye, EyeOff } from "lucide-react-native"; // ไอคอน
 import { useState } from "react";
-import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
 
 export default function LoginScreen() {
+  const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <LinearGradient
-      colors={["#4A3AFF", "#A86EFF"]}
-      className="flex-1 justify-center px-6"
+      colors={["#6A5AE0", "#A18AFF"]}
+      style={styles.container}
     >
-      {/* Logo / App Name */}
-      <View className="items-center mb-10">
-        <Text className="text-white text-4xl font-bold">MeetEase</Text>
-      </View>
+      {/* Logo + Title */}
+      <Text style={styles.title}>MeetEase</Text>
 
-      {/* Email Field */}
-      <View className="mb-4">
-        <Text className="text-white mb-1">Email address</Text>
+      {/* Email */}
+      <TextInput
+        placeholder="Enter your email"
+        placeholderTextColor="#ddd"
+        style={styles.input}
+        keyboardType="email-address"
+      />
+
+      {/* Password */}
+      <View style={styles.passwordBox}>
         <TextInput
-          placeholder="Enter your email"
+          placeholder="Enter your password"
           placeholderTextColor="#ddd"
-          className="bg-white/20 text-white p-3 rounded-2xl"
-          keyboardType="email-address"
+          style={styles.passwordInput}
+          secureTextEntry={!showPassword}
         />
-      </View>
-
-      {/* Password Field */}
-      <View className="mb-4">
-        <Text className="text-white mb-1">Password</Text>
-        <View className="bg-white/20 rounded-2xl flex-row items-center px-3">
-          <TextInput
-            placeholder="Enter your password"
-            placeholderTextColor="#ddd"
-            className="flex-1 text-white py-3"
-            secureTextEntry={!showPassword}
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <Ionicons
+            name={showPassword ? "eye-off" : "eye"}
+            size={20}
+            color="#ddd"
           />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            {showPassword ? (
-              <EyeOff size={20} color="white" />
-            ) : (
-              <Eye size={20} color="white" />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Remember Me & Reset */}
-      <View className="flex-row justify-between items-center mb-4">
-        <TouchableOpacity>
-          <Text className="text-white">Remember Me</Text>
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Text className="text-white underline">Reset Password</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Sign In Button */}
-      <TouchableOpacity className="bg-yellow-400 py-4 rounded-2xl mb-6">
-        <Text className="text-black text-center text-lg font-semibold">
-          Sign in
-        </Text>
+      {/* Remember + Reset */}
+      <View style={styles.row}>
+        <Text style={styles.remember}>○ Remember Me</Text>
+        <TouchableOpacity>
+          <Text style={styles.reset}>Reset Password</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Sign in Button */}
+      <TouchableOpacity
+        style={styles.signinBtn}
+        onPress={() => navigation.replace("Main")}
+      >
+        <Text style={styles.signinText}>Sign in</Text>
       </TouchableOpacity>
 
       {/* Sign Up link */}
-      <View className="items-center mb-4">
-        <Text className="text-white">
-          Don't have an account?{" "}
-          <Text className="text-yellow-300 underline">Sign Up</Text>
+      <Text style={styles.signupText}>
+        Don’t have an account?{" "}
+        <Text
+          style={styles.signupLink}
+          onPress={() => navigation.navigate("Register")}
+        >
+          Sign Up
         </Text>
+      </Text>
+
+      {/* Divider */}
+      <View style={styles.divider}>
+        <View style={styles.line} />
+        <Text style={styles.orText}>Or Sign In with</Text>
+        <View style={styles.line} />
       </View>
 
       {/* Social Buttons */}
-      <View className="flex-row justify-center space-x-4">
-        <TouchableOpacity className="bg-white rounded-full p-3">
+      <View style={styles.socialRow}>
+        <TouchableOpacity style={styles.socialBtn}>
           <Image
             source={{ uri: "https://img.icons8.com/color/48/google-logo.png" }}
-            style={{ width: 30, height: 30 }}
+            style={styles.socialIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity className="bg-white rounded-full p-3">
+        <TouchableOpacity style={styles.socialBtn}>
           <Image
             source={{ uri: "https://img.icons8.com/ios-filled/50/mac-os.png" }}
-            style={{ width: 30, height: 30, tintColor: "black" }}
+            style={styles.socialIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity className="bg-white rounded-full p-3">
+        <TouchableOpacity style={styles.socialBtn}>
           <Image
-            source={{ uri: "https://img.icons8.com/color/48/facebook-new.png" }}
-            style={{ width: 30, height: 30 }}
+            source={{ uri: "https://img.icons8.com/ios-filled/50/facebook.png" }}
+            style={styles.socialIcon}
           />
         </TouchableOpacity>
       </View>
 
       {/* Terms */}
-      <View className="items-center mt-6">
-        <Text className="text-white text-xs text-center">
-          By signing up you agree to our{" "}
-          <Text className="underline text-yellow-300">Terms</Text> and{" "}
-          <Text className="underline text-yellow-300">Conditions of Use</Text>
-        </Text>
-      </View>
+      <Text style={styles.terms}>
+        By signing up you agree to our{" "}
+        <Text style={styles.link}>Terms</Text> and{" "}
+        <Text style={styles.link}>Conditions of Use</Text>
+      </Text>
     </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, justifyContent: "center" },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
+    marginBottom: 40,
+  },
+  input: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    color: "white",
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+  passwordBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+  },
+  passwordInput: { flex: 1, color: "white", paddingVertical: 12 },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  remember: { color: "white" },
+  reset: { color: "white", textDecorationLine: "underline" },
+  signinBtn: {
+    backgroundColor: "#FFD700",
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  signinText: { color: "black", fontSize: 18, fontWeight: "bold" },
+  signupText: { color: "white", textAlign: "center", marginBottom: 20 },
+  signupLink: { color: "#FFD700", fontWeight: "bold" },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  line: { flex: 1, height: 1, backgroundColor: "#aaa" },
+  orText: { color: "#ddd", marginHorizontal: 10 },
+  socialRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  socialBtn: {
+    backgroundColor: "white",
+    borderRadius: 50,
+    padding: 10,
+    marginHorizontal: 10,
+  },
+  socialIcon: { width: 30, height: 30 },
+  terms: { color: "#ddd", textAlign: "center", fontSize: 12 },
+  link: { color: "#FFD700", textDecorationLine: "underline" },
+});
