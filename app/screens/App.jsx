@@ -1,11 +1,18 @@
-import { NavigationContainer } from "@react-navigation/native";
-import Tabs from "./Tab"; // ปรับ path ตามจริง
+import { createStackNavigator } from "@react-navigation/stack";
+import LoginScreen from "./Login";
+import RegisterScreen from "./Register";
+import Tabs from "./Tab";
+import WelcomeScreen from "./Welcome";
 
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Tabs />
-    </NavigationContainer>
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Welcome">
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="Main" component={Tabs} />
+    </Stack.Navigator>
   );
 }
