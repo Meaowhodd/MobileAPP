@@ -7,10 +7,10 @@ import {
   View,
 } from "react-native";
 
-import { useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
+  
 
   return (
     <View style={styles.container}>
@@ -70,7 +70,7 @@ export default function ProfileScreen() {
               marginLeft: 40,
               marginRight: 40,
             }}
-            onPress={() => navigation.navigate("ProfileSettingScreen")}
+            onPress={() => router.push({ pathname: "/screens/ProfileStack/ProfileSettingScreen" })}
           >
             <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
               Edit Your Profile
