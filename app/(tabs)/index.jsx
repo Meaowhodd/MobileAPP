@@ -1,10 +1,5 @@
-import React from "react";
-import Tabs from "../screens/Tab";
-
-
+import App from "../screens/App";
 
 export default function Index() {
-  return (
-        <Tabs/>
-  );
+  return <App />;
 }
