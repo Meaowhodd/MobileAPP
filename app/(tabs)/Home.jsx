@@ -5,19 +5,19 @@ import { FlatList, Image, SafeAreaView, StyleSheet, Text, TextInput, TouchableOp
 
 // ---------- ข้อมูลห้อง (ชื่อ + code พร้อมค้นหา) ----------
 const ROOMS_INIT = [
-  { id: "1",  name: "Brainstorm Hub",       code: "A-203", people: "4-6 คน",  floor: "2", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: true  },
-  { id: "2",  name: "Pitch Room",           code: "A-105", people: "8-12 คน", floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "3",  name: "Digital Lab",          code: "B-201", people: "10-15 คน",floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: false },
-  { id: "4",  name: "Tech Conference Hall", code: "A-102", people: "20-30 คน",floor: "1", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: true  },
-  { id: "5",  name: "Innovation Studio",    code: "C-308", people: "6-8 คน",  floor: "3", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "6",  name: "Focus Cabin",          code: "D-112", people: "2-4 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "7",  name: "Strategy Boardroom",   code: "E-405", people: "8-10 คน", floor: "4", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "8",  name: "Collab Corner",        code: "B-103", people: "6-8 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: false },
-  { id: "9",  name: "Idea Loft",            code: "C-210", people: "8-12 คน", floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "10", name: "Nexus Room",           code: "A-301", people: "8-10 คน", floor: "3", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "11", name: "Horizon Suite",        code: "D-505", people: "12-18 คน",floor: "5", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "12", name: "Atlas Room",           code: "E-207", people: "4-6 คน",  floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true  },
-  { id: "13", name: "Echo Pod",             code: "F-109", people: "2-3 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: false },
+  { id: "1",  name: "Brainstorm Hub",       code: "A-203", people: "4-6 คน",  floor: "2", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: true, description: "ห้องเล็กสำหรับการระดมสมองของทีมเล็ก", highlights: "Whiteboard, Sticky notes, TV Screen", bestFor: "Brainstorming, Idea pitching", atmosphere: "สดใส กระตุ้นความคิดสร้างสรรค์" },
+  { id: "2",  name: "Pitch Room",           code: "A-105", people: "8-12 คน", floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องขนาดกลางเหมาะสำหรับการพรีเซนต์งานและ pitch idea", highlights: "Projector, Microphone, Stage",bestFor: "Pitching, Team presentation",atmosphere: "เป็นทางการ เหมาะกับการนำเสนอ" },
+  { id: "3",  name: "Digital Lab",          code: "B-201", people: "10-15 คน",floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: false, description: "ห้องทดลองเชิงดิจิทัล รองรับการจัด workshop", highlights: "Computers, Smartboard, High-speed WiFi",  bestFor: "Training, Workshop", atmosphere: "ทันสมัย มีอุปกรณ์ดิจิทัลครบ"},
+  { id: "4",  name: "Tech Conference Hall", code: "A-102", people: "20-30 คน",floor: "1", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: true, description: "ห้องประชุมขนาดใหญ่ เหมาะสำหรับการจัดสัมมนา",highlights: "Stage, Sound system, Projector",bestFor: "Conference, Seminar",atmosphere: "กว้างขวาง เป็นทางการ"  },
+  { id: "5",  name: "Innovation Studio",    code: "C-308", people: "6-8 คน",  floor: "3", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "พื้นที่สร้างสรรค์สำหรับทีมวิจัยและพัฒนา",highlights: "Prototyping tools, Whiteboard, 3D Printer",bestFor: "Innovation, Product design",atmosphere: "สร้างสรรค์ ทันสมัย"  },
+  { id: "6",  name: "Focus Cabin",          code: "D-112", people: "2-4 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องเล็กเงียบสงบสำหรับการทำงานแบบโฟกัส",highlights: "Noise-cancellation, Comfortable chairs",bestFor: "Deep work, Small private meeting",atmosphere: "สงบ ส่วนตัว"  },
+  { id: "7",  name: "Strategy Boardroom",   code: "E-405", people: "8-10 คน", floor: "4", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องประชุมเชิงกลยุทธ์ของผู้บริหาร",highlights: "Large table, Video conferencing, Projector", bestFor: "Board meeting, Strategic planning", atmosphere: "หรูหรา มีความเป็นมืออาชีพ" },
+  { id: "8",  name: "Collab Corner",        code: "B-103", people: "6-8 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: false, description: "มุมสำหรับการทำงานร่วมกันอย่างไม่เป็นทางการ", highlights: "Couch, Whiteboard, Coffee machine", bestFor: "Team collaboration, Casual meeting",atmosphere: "อบอุ่น ผ่อนคลาย" },
+  { id: "9",  name: "Idea Loft",            code: "C-210", people: "8-12 คน", floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องสตูดิโอเพดานสูงสำหรับการคิดสร้างสรรค์", highlights: "Open space, Art wall, Natural light",bestFor: "Creative session, Brainstorming",atmosphere: "เปิดกว้าง กระตุ้นไอเดีย"  },
+  { id: "10", name: "Nexus Room",           code: "A-301", people: "8-10 คน", floor: "3", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องหรูพร้อมวิวเมือง เหมาะสำหรับลูกค้าสำคัญ",highlights: "Panoramic view, Projector, Coffee bar", bestFor: "Client meeting, Executive session", atmosphere: "หรูหรา โปร่งโล่ง" },
+  { id: "11", name: "Horizon Suite",        code: "D-505", people: "12-18 คน",floor: "5", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true,  description: "ห้องหรูพร้อมวิวเมือง เหมาะสำหรับลูกค้าสำคัญ",highlights: "Panoramic view, Projector, Coffee bar",bestFor: "Client meeting, Executive session",atmosphere: "หรูหรา โปร่งโล่ง"},
+  { id: "12", name: "Atlas Room",           code: "E-207", people: "4-6 คน",  floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true,  description: "ห้องประชุมขนาดเล็กเหมาะกับทีมสตาร์ทอัพ", highlights: "Whiteboard, Monitor, WiFi",bestFor: "Startup meeting, Small discussion",atmosphere: "เป็นกันเอง มีชีวิตชีวา" },
+  { id: "13", name: "Echo Pod",             code: "F-109", people: "2-3 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: false, description: "ห้องเล็กส่วนตัวสำหรับการโทรหรือประชุมออนไลน์",highlights: "Soundproof, Headset, Small desk",bestFor: "Online meeting, Private call",atmosphere: "เงียบสงบ เป็นส่วนตัวสูง" },
 ];
 
 export default function HomeScreen() {
@@ -51,54 +51,87 @@ export default function HomeScreen() {
     );
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Image source={item.image} style={styles.cardImage} />
+ const renderItem = ({ item }) => (
+  <TouchableOpacity
+    style={styles.card}
+    activeOpacity={0.9}
+    // 👉 กดที่การ์ด = ไปหน้า RoomDetail
+    onPress={() =>
+  router.push({
+    pathname: "/screens/RoomDetail",
+    params: {
+      roomId: item.id,
+      roomName: item.name,
+      roomCode: item.code,
+      people: item.people,
+      floor: item.floor,
+      image: item.image,
+      description: item.description,   // ✅ ส่งข้อมูลของห้องจริง
+      highlights: item.highlights,
+      bestFor: item.bestFor,
+      atmosphere: item.atmosphere,
+    },
+  })
+}
 
-      <View style={styles.cardBody}>
-        <View style={styles.titleRow}>
-          <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
-          <TouchableOpacity onPress={() => toggleLike(item.id)} hitSlop={8}>
-            <Ionicons
-              name={item.liked ? "heart" : "heart-outline"}
-              size={22}
-              color={item.liked ? "#ff3b30" : "#9aa0a6"}
-            />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.metaRow}>
-          <Text style={styles.metaValue}>ROOM  </Text>
-          <Text style={styles.metaValue}>{item.code}</Text>
-        </View>
+  >
+    {/* รูปห้อง */}
+    <Image source={item.image} style={styles.cardImage} />
 
-        <View style={styles.metaRow}>
-          <MaterialIcons name="groups" size={20} style={styles.metaIcon} />
-          <Text style={styles.metaValue}>ความจุ {item.people}</Text>
-        </View>
+    {/* เนื้อหาในบัตร */}
+    <View style={styles.cardBody}>
+      <View style={styles.titleRow}>
+        <Text style={styles.cardTitle} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <TouchableOpacity onPress={() => toggleLike(item.id)} hitSlop={8}>
+          <Ionicons
+            name={item.liked ? "heart" : "heart-outline"}
+            size={22}
+            color={item.liked ? "#ff3b30" : "#9aa0a6"}
+          />
+        </TouchableOpacity>
+      </View>
 
-        <View style={styles.metaRow}>
-          <MaterialIcons name="stairs" size={20} style={styles.metaIcon} />
-          <Text style={styles.metaValue}>ชั้น {item.floor}</Text>
-        </View>
+      <View style={styles.metaRow}>
+        <Text style={styles.metaValue}>ROOM {item.code}</Text>
+      </View>
 
-        <View style={styles.footerRow}>
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            style={styles.bookBtn}
-            onPress={() =>
-              router.push({
-                pathname: "/screens/Booking",
-                params: { roomId: item.id, roomName: item.name, roomCode: item.code },
-              })
-            }
-          >
-            <Text style={styles.bookBtnText}>BOOK NOW</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.metaRow}>
+        <MaterialIcons name="groups" size={20} style={styles.metaIcon} />
+        <Text style={styles.metaValue}>ความจุ {item.people}</Text>
+      </View>
+
+      <View style={styles.metaRow}>
+        <MaterialIcons name="stairs" size={20} style={styles.metaIcon} />
+        <Text style={styles.metaValue}>ชั้น {item.floor}</Text>
+      </View>
+
+      {/* ปุ่ม Book Now (แยกจาก onPress ของการ์ด) */}
+      <View style={styles.footerRow}>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          style={styles.bookBtn}
+          onPress={(e) => {
+            e.stopPropagation(); // ❌ กันไม่ให้ไปชน onPress ของการ์ด
+            router.push({
+              pathname: "/screens/Booking",
+              params: {
+                roomId: item.id,
+                roomName: item.name,
+                roomCode: item.code,
+              },
+            });
+          }}
+        >
+          <Text style={styles.bookBtnText}>BOOK NOW</Text>
+        </TouchableOpacity>
       </View>
     </View>
-  );
+  </TouchableOpacity>
+);
+
 
   return (
     <SafeAreaView style={styles.container}>
