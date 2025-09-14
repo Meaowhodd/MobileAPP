@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { useRouter } from "expo-router"; // ✅ ใช้ useRouter ของ expo-router
 import { useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter(); // ✅ แทน navigation
 
   return (
     <LinearGradient
@@ -51,7 +52,11 @@ export default function LoginScreen() {
       {/* Sign in Button */}
       <TouchableOpacity
         style={styles.signinBtn}
-        onPress={() => navigation.replace("Main")}
+        onPress={() => {
+          // ✅ กด Sign in → เข้า Tabs/Home
+          router.replace("/Home");   // ✅ ไปหน้า Home จริง
+
+        }}
       >
         <Text style={styles.signinText}>Sign in</Text>
       </TouchableOpacity>
@@ -76,7 +81,10 @@ export default function LoginScreen() {
 
       {/* Social Buttons */}
       <View style={styles.socialRow}>
-        <TouchableOpacity onPress={() => router.push({ pathname: "/Home" })} style={styles.socialBtn}>
+        <TouchableOpacity
+          onPress={() => router.replace("/(tabs)")}
+          style={styles.socialBtn}
+        >
           <Image
             source={{ uri: "https://img.icons8.com/color/48/google-logo.png" }}
             style={styles.socialIcon}
