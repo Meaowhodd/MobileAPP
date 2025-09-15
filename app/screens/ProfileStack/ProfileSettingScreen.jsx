@@ -9,8 +9,9 @@ import {
 } from "react-native";
 
 import { useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
 
-export default function ProfileScreen() {
+export default function ProfileSettingScreen() {
   const navigation = useNavigation();
 
   return (
@@ -57,15 +58,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.button1}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
-              Save Changes{/*Wont doing anything Yet*/}
-            </Text>
-          </TouchableOpacity>
-
           <View style={{ marginVertical: 30 }}></View>
           <Text style={styles.subheadertext}>Account</Text>
           <View style={styles.divider}></View>
@@ -77,7 +69,12 @@ export default function ProfileScreen() {
             <Text style={styles.contenttext}>john.doe@gmail.com</Text>{" "}
             {/*Email value goes here*/}
           </View>
-          <TouchableOpacity style={styles.button1}>
+          <TouchableOpacity
+            style={styles.button1}
+            onPress={() =>
+              router.push("/screens/ProfileStack/ProfileChangeEmail")
+            }
+          >
             <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
               Change E-mail
             </Text>
@@ -92,18 +89,43 @@ export default function ProfileScreen() {
             <Text style={styles.contenttext}>**********</Text>{" "}
             {/*Password length value goes here as * repeated for the length of the actual password */}
           </View>
-          <TouchableOpacity style={styles.button1}>
+          <TouchableOpacity
+            style={styles.button1}
+            onPress={() =>
+              router.push("/screens/ProfileStack/ProfileChangePassword")
+            }
+          >
             <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
               Change Password
             </Text>
           </TouchableOpacity>
 
-        </View>
+          <View style={{ marginVertical: 30 }}></View>
+          <View style={styles.divider}></View>
 
-        <View style={styles.middle}>
-          <Text style={styles.middletext}>
-            Profile Setting Incomplete
-          </Text>
+          <View style={{ flex: 1 ,flexDirection: "row-reverse"}}>
+            <TouchableOpacity
+              style={styles.button1}
+              onPress={() => navigation.goBack()}
+            >
+              <Text
+                style={{ color: "white", textAlign: "center", fontSize: 20 }}
+              >
+                Save Changes{/*Wont doing anything Yet*/}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button1, { backgroundColor: "#ff4d4dff", marginRight: 20 }]}
+              onPress={() => navigation.goBack()}
+            >
+              <Text
+                style={{ color: "white", textAlign: "center", fontSize: 20 }}
+              >
+                Cancel Changes{/*Wont doing anything Yet*/}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
