@@ -171,9 +171,10 @@ export default function HomeScreen() {
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between",marginBottom:10 }}>
         <Text style={styles.meetingRoomText}>Meeting room</Text>
-        <TouchableOpacity onPress={() => router.push({ pathname: "/screens/Login" })}>
-          <MaterialIcons name="calendar-month" size={30} style={styles.metaIcon} />
+        <TouchableOpacity onPress={() => router.push("/screens/RoomCalendar")}>
+      <MaterialIcons name="calendar-month" size={30} style={styles.metaIcon} />
         </TouchableOpacity>
+
       </View>
 
       {/* รายการห้อง */}
