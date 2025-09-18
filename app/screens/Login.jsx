@@ -82,7 +82,7 @@ export default function LoginScreen() {
       {/* Social Buttons */}
       <View style={styles.socialRow}>
         <TouchableOpacity
-          onPress={() => router.replace("/(tabs)")}
+          onPress={() => router.replace("/(tabs)/Home")}
           style={styles.socialBtn}
         >
           <Image
