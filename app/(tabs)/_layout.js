@@ -1,32 +1,79 @@
-// app/(tabs)/_layout.js
 import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+function MyTabBar({ state, descriptors, navigation }) {
+  return (
+    <View style={styles.tabBar}>
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const label =
+          options.tabBarLabel !== undefined
+            ? options.tabBarLabel
+            : options.title !== undefined
+            ? options.title
+            : route.name;
+
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: "tabPress",
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        // ✅ ปุ่มกลาง +
+        if (route.name === "Create") {
+          return (
+            <TouchableOpacity
+              key={route.name}
+              onPress={onPress}
+              style={styles.centerButton}
+            >
+              <Ionicons name="add" size={32} color="#fff" />
+            </TouchableOpacity>
+          );
+        }
+
+        return (
+          <TouchableOpacity
+            key={route.name}
+            onPress={onPress}
+            style={styles.tabItem}
+          >
+            {options.tabBarIcon({
+              color: isFocused ? "#1f66f2" : "#777",
+              size: 24,
+            })}
+            <Text
+              style={{
+                color: isFocused ? "#1f66f2" : "#777",
+                fontSize: 12,
+                marginTop: 4,
+              }}
+            >
+              {label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   return (
     <Tabs
-  screenOptions={{
-    headerShown: false,
-    tabBarShowLabel: true,
-    tabBarLabelStyle: { fontSize: 12, marginTop: -4 }, // ✅ ดึง text ขึ้นมาใกล้ icon
-    tabBarIconStyle: { marginBottom: -2 },             // ✅ icon ขยับลงมาเล็กน้อย
-    tabBarItemStyle: {
-      paddingVertical: 8,   // ✅ เพิ่มพื้นที่กดในแต่ละปุ่ม
-    },
-    tabBarStyle: {
-      backgroundColor: "#fff",
-      height: 80,           // ✅ สูงขึ้นชัดๆ
-      borderTopWidth: 1,
-      borderTopColor: "#ddd",
-    },
-    tabBarActiveTintColor: "#1f66f2",
-    tabBarInactiveTintColor: "#777",
-  }}
->
-
-      {/* หน้าแรกให้ใช้ index.jsx */}
+      screenOptions={{ headerShown: false }} // ปิด header บนทุกหน้า
+      tabBar={(props) => <MyTabBar {...props} />}
+    >
       <Tabs.Screen
         name="Home"
         options={{
@@ -37,33 +84,69 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* ✅ Booking = ปฏิทิน */}
       <Tabs.Screen
         name="Book"
         options={{
-          title: "Book",
+          title: "Booking",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bookmarks" size={size} color={color} />
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
+
+      {/* ✅ ปุ่มกลาง */}
+      <Tabs.Screen
+        name="Create"
+        options={{
+          title: "Create",
+          tabBarIcon: () => null, // ใช้ปุ่ม custom แทน
+        }}
+      />
+
       <Tabs.Screen
         name="Inbox"
         options={{
-          title: "Inbox",
+          title: "Notifications",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="bell" size={size} color={color} />
           ),
         }}
       />
+
       <Tabs.Screen
         name="Profile"
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    flexDirection: "row",
+    justifyContent: "space-around", // ✅ แต่ละปุ่มเว้นเท่ากัน
+    alignItems: "center",
+    height: 70,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    shadowColor: "#000", // เพิ่มเงาให้นิดหน่อย สวยขึ้น
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: -2 },
+    shadowRadius: 4,
+    elevation: 5, // เงาสำหรับ Android
+  },
+  tabItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    paddingVertical: 6, // ✅ เพิ่มพื้นที่กด
+  },
+});
+
