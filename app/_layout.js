@@ -2,25 +2,23 @@ import { Stack } from "expo-router";
 
 export default function Layout() {
   return (
-    <Stack>
-      {/* หน้าแรก (Landing Page) */}
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Landing Page */}
+      <Stack.Screen name="index" />
 
-      {/* หน้า Login & Register */}
-      <Stack.Screen 
-        name="screens/Login" 
-        options={{ 
-          headerShown: false,   // 🔹 ไม่แสดง header
-          gestureEnabled: false // 🔹 ปิดการ swipe back บน iOS
-        }} 
-      />
-      <Stack.Screen name="screens/Register" options={{ headerShown: false }} />
+      {/* Login & Register */}
+      <Stack.Screen name="screens/Login" />
+      <Stack.Screen name="screens/Register" />
 
       {/* Admin */}
-      <Stack.Screen name="admin/AdminDashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="admin/AdminDashboard" />
+      <Stack.Screen name="admin/ManageUsers" />
+      <Stack.Screen name="admin/ManageRooms" />
+      <Stack.Screen name="admin/ManageBookings" />
+      <Stack.Screen name="admin/Reports" />
 
       {/* Tabs */}
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" />
     </Stack>
   );
 }
