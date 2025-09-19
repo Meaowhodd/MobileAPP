@@ -7,21 +7,25 @@ import { Tabs } from "expo-router";
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: true,
-        tabBarLabelStyle: { fontSize: 12 },
-        tabBarStyle: {
-          backgroundColor: "#F2F2F2",
-          height: 62,
-          borderTopWidth: 0,
-          elevation: 10,
-          paddingBottom: 10,
-        },
-        tabBarActiveTintColor: "#1f66f2",
-        tabBarInactiveTintColor: "#777",
-      }}
-    >
+  screenOptions={{
+    headerShown: false,
+    tabBarShowLabel: true,
+    tabBarLabelStyle: { fontSize: 12, marginTop: -4 }, // ✅ ดึง text ขึ้นมาใกล้ icon
+    tabBarIconStyle: { marginBottom: -2 },             // ✅ icon ขยับลงมาเล็กน้อย
+    tabBarItemStyle: {
+      paddingVertical: 8,   // ✅ เพิ่มพื้นที่กดในแต่ละปุ่ม
+    },
+    tabBarStyle: {
+      backgroundColor: "#fff",
+      height: 80,           // ✅ สูงขึ้นชัดๆ
+      borderTopWidth: 1,
+      borderTopColor: "#ddd",
+    },
+    tabBarActiveTintColor: "#1f66f2",
+    tabBarInactiveTintColor: "#777",
+  }}
+>
+
       {/* หน้าแรกให้ใช้ index.jsx */}
       <Tabs.Screen
         name="Home"
