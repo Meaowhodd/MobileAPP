@@ -1,14 +1,24 @@
-// app/_layout.js
 import { Stack } from "expo-router";
 
-export default function RootLayout() {
+export default function Layout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {/* กลุ่มแท็บทั้งหมด */}
-      <Stack.Screen name="(tabs)" />
-      {/* หน้าที่อยู่นอกแท็บ (จะไม่เห็น Tab Bar) */}
-      <Stack.Screen name="screens/Booking" />
+      {/* Landing Page */}
+      <Stack.Screen name="index" />
+
+      {/* Login & Register */}
       <Stack.Screen name="screens/Login" />
+      <Stack.Screen name="screens/Register" />
+
+      {/* Admin */}
+      <Stack.Screen name="admin/AdminDashboard" />
+      <Stack.Screen name="admin/ManageUsers" />
+      <Stack.Screen name="admin/ManageRooms" />
+      <Stack.Screen name="admin/ManageBookings" />
+      <Stack.Screen name="admin/Reports" />
+
+      {/* Tabs */}
+      <Stack.Screen name="(tabs)" />
     </Stack>
   );
 }

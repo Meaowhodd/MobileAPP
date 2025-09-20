@@ -1,47 +1,62 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router"; // ✅ ใช้ useRouter ของ expo-router
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter(); // ✅ แทน navigation
+  const [email, setEmail] = useState("");       // เก็บค่า email
+  const [password, setPassword] = useState(""); // เก็บค่า password
+  const router = useRouter(); 
+
+  // 🚧 mock login ใช้แทน Firebase ชั่วคราว
+  const handleLogin = async () => {
+    // mock role จาก email
+    let role = "student"; 
+    if (email === "admin@uni.com") {
+      role = "admin";
+    }
+
+    // ตรวจสอบ role แล้วเปลี่ยนหน้า
+    if (role === "admin") {
+      router.replace("/admin/AdminDashboard"); // ไปหน้าแอดมิน
+    } else {
+      router.replace("/(tabs)/Home"); // ไปหน้า user ปกติ
+    }
+  };
 
   return (
-    <LinearGradient
-      colors={["#6A5AE0", "#A18AFF"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#6A5AE0", "#A18AFF"]} style={styles.container}>
       {/* Logo + Title */}
       <Text style={styles.title}>MeetEase</Text>
 
-      {/* Email */}
+      {/* Email Input */}
       <TextInput
         placeholder="Enter your email"
         placeholderTextColor="#ddd"
         style={styles.input}
         keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
       />
 
-      {/* Password */}
+      {/* Password Input + toggle show/hide */}
       <View style={styles.passwordBox}>
         <TextInput
           placeholder="Enter your password"
           placeholderTextColor="#ddd"
           style={styles.passwordInput}
           secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
         />
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-          <Ionicons
-            name={showPassword ? "eye-off" : "eye"}
-            size={20}
-            color="#ddd"
-          />
+          <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#ddd" />
         </TouchableOpacity>
       </View>
 
-      {/* Remember + Reset */}
+      {/* Remember Me + Reset Password */}
       <View style={styles.row}>
         <Text style={styles.remember}>○ Remember Me</Text>
         <TouchableOpacity>
@@ -50,24 +65,14 @@ export default function LoginScreen() {
       </View>
 
       {/* Sign in Button */}
-      <TouchableOpacity
-        style={styles.signinBtn}
-        onPress={() => {
-          // ✅ กด Sign in → เข้า Tabs/Home
-          router.replace("/Home");   // ✅ ไปหน้า Home จริง
-
-        }}
-      >
+      <TouchableOpacity style={styles.signinBtn} onPress={handleLogin}>
         <Text style={styles.signinText}>Sign in</Text>
       </TouchableOpacity>
 
       {/* Sign Up link */}
       <Text style={styles.signupText}>
         Don’t have an account?{" "}
-        <Text
-          style={styles.signupLink}
-          onPress={() => router.push({ pathname: "/screens/Register" })}
-        >
+        <Text style={styles.signupLink} onPress={() => router.push("/screens/Register")}>
           Sign Up
         </Text>
       </Text>
@@ -79,12 +84,9 @@ export default function LoginScreen() {
         <View style={styles.line} />
       </View>
 
-      {/* Social Buttons */}
+      {/* Social Buttons (ยังไม่ได้เชื่อมจริง) */}
       <View style={styles.socialRow}>
-        <TouchableOpacity
-          onPress={() => router.replace("/(tabs)/Home")}
-          style={styles.socialBtn}
-        >
+        <TouchableOpacity style={styles.socialBtn}>
           <Image
             source={{ uri: "https://img.icons8.com/color/48/google-logo.png" }}
             style={styles.socialIcon}
@@ -106,14 +108,14 @@ export default function LoginScreen() {
 
       {/* Terms */}
       <Text style={styles.terms}>
-        By signing up you agree to our{" "}
-        <Text style={styles.link}>Terms</Text> and{" "}
+        By signing up you agree to our <Text style={styles.link}>Terms</Text> and{" "}
         <Text style={styles.link}>Conditions of Use</Text>
       </Text>
     </LinearGradient>
   );
 }
 
+// ✅ Styles เดิม
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: "center" },
   title: {
