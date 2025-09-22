@@ -1,152 +1,169 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { FlatList, Image, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  FlatList,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-// ---------- ข้อมูลห้อง (ชื่อ + code พร้อมค้นหา) ----------
-const ROOMS_INIT = [
-  { id: "1",  name: "Brainstorm Hub",       code: "A-203", people: "4-6 คน",  floor: "2", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: true, description: "ห้องเล็กสำหรับการระดมสมองของทีมเล็ก", highlights: "Whiteboard, Sticky notes, TV Screen", bestFor: "Brainstorming, Idea pitching", atmosphere: "สดใส กระตุ้นความคิดสร้างสรรค์" },
-  { id: "2",  name: "Pitch Room",           code: "A-105", people: "8-12 คน", floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องขนาดกลางเหมาะสำหรับการพรีเซนต์งานและ pitch idea", highlights: "Projector, Microphone, Stage",bestFor: "Pitching, Team presentation",atmosphere: "เป็นทางการ เหมาะกับการนำเสนอ" },
-  { id: "3",  name: "Digital Lab",          code: "B-201", people: "10-15 คน",floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: false, description: "ห้องทดลองเชิงดิจิทัล รองรับการจัด workshop", highlights: "Computers, Smartboard, High-speed WiFi",  bestFor: "Training, Workshop", atmosphere: "ทันสมัย มีอุปกรณ์ดิจิทัลครบ"},
-  { id: "4",  name: "Tech Conference Hall", code: "A-102", people: "20-30 คน",floor: "1", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: true, description: "ห้องประชุมขนาดใหญ่ เหมาะสำหรับการจัดสัมมนา",highlights: "Stage, Sound system, Projector",bestFor: "Conference, Seminar",atmosphere: "กว้างขวาง เป็นทางการ"  },
-  { id: "5",  name: "Innovation Studio",    code: "C-308", people: "6-8 คน",  floor: "3", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "พื้นที่สร้างสรรค์สำหรับทีมวิจัยและพัฒนา",highlights: "Prototyping tools, Whiteboard, 3D Printer",bestFor: "Innovation, Product design",atmosphere: "สร้างสรรค์ ทันสมัย"  },
-  { id: "6",  name: "Focus Cabin",          code: "D-112", people: "2-4 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องเล็กเงียบสงบสำหรับการทำงานแบบโฟกัส",highlights: "Noise-cancellation, Comfortable chairs",bestFor: "Deep work, Small private meeting",atmosphere: "สงบ ส่วนตัว"  },
-  { id: "7",  name: "Strategy Boardroom",   code: "E-405", people: "8-10 คน", floor: "4", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องประชุมเชิงกลยุทธ์ของผู้บริหาร",highlights: "Large table, Video conferencing, Projector", bestFor: "Board meeting, Strategic planning", atmosphere: "หรูหรา มีความเป็นมืออาชีพ" },
-  { id: "8",  name: "Collab Corner",        code: "B-103", people: "6-8 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: true,  availableToday: false, description: "มุมสำหรับการทำงานร่วมกันอย่างไม่เป็นทางการ", highlights: "Couch, Whiteboard, Coffee machine", bestFor: "Team collaboration, Casual meeting",atmosphere: "อบอุ่น ผ่อนคลาย" },
-  { id: "9",  name: "Idea Loft",            code: "C-210", people: "8-12 คน", floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องสตูดิโอเพดานสูงสำหรับการคิดสร้างสรรค์", highlights: "Open space, Art wall, Natural light",bestFor: "Creative session, Brainstorming",atmosphere: "เปิดกว้าง กระตุ้นไอเดีย"  },
-  { id: "10", name: "Nexus Room",           code: "A-301", people: "8-10 คน", floor: "3", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true, description: "ห้องหรูพร้อมวิวเมือง เหมาะสำหรับลูกค้าสำคัญ",highlights: "Panoramic view, Projector, Coffee bar", bestFor: "Client meeting, Executive session", atmosphere: "หรูหรา โปร่งโล่ง" },
-  { id: "11", name: "Horizon Suite",        code: "D-505", people: "12-18 คน",floor: "5", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true,  description: "ห้องหรูพร้อมวิวเมือง เหมาะสำหรับลูกค้าสำคัญ",highlights: "Panoramic view, Projector, Coffee bar",bestFor: "Client meeting, Executive session",atmosphere: "หรูหรา โปร่งโล่ง"},
-  { id: "12", name: "Atlas Room",           code: "E-207", people: "4-6 คน",  floor: "2", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: true,  description: "ห้องประชุมขนาดเล็กเหมาะกับทีมสตาร์ทอัพ", highlights: "Whiteboard, Monitor, WiFi",bestFor: "Startup meeting, Small discussion",atmosphere: "เป็นกันเอง มีชีวิตชีวา" },
-  { id: "13", name: "Echo Pod",             code: "F-109", people: "2-3 คน",  floor: "1", image: require("../../assets/images/Room1.jpg"), liked: false, availableToday: false, description: "ห้องเล็กส่วนตัวสำหรับการโทรหรือประชุมออนไลน์",highlights: "Soundproof, Headset, Small desk",bestFor: "Online meeting, Private call",atmosphere: "เงียบสงบ เป็นส่วนตัวสูง" },
-];
+import {
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  setDoc,
+} from "firebase/firestore";
+import { auth, db } from "../../firebaseConfig";
 
 export default function HomeScreen() {
-  const [rooms, setRooms] = useState(ROOMS_INIT);
+  const [rooms, setRooms] = useState([]);
+  const [favIds, setFavIds] = useState(new Set());
   const [query, setQuery] = useState("");
 
-  // ค่าสถิติบนการ์ด
+  // rooms realtime
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "rooms"),
+      (snap) => setRooms(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      (err) => console.error("rooms onSnapshot error:", err)
+    );
+    return unsub;
+  }, []);
+
+  // favorites realtime (per-user)
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const unsub = onSnapshot(
+      collection(db, "favorites", uid, "rooms"),
+      (snap) => setFavIds(new Set(snap.docs.map((d) => d.id))),
+      (err) => console.error("favorites onSnapshot error:", err)
+    );
+    return unsub;
+  }, [auth.currentUser?.uid]);
+
+  // stats
   const stats = useMemo(() => {
     const all = rooms.length;
     const available = rooms.filter((r) => r.availableToday).length;
     return { available, all };
   }, [rooms]);
 
-  // ✅ ค้นหาทั้งชื่อห้อง และเลขห้อง (code) + เรียง liked มาก่อน
+  // filter + sort (liked first)
   const visibleRooms = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = rooms.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.code.toLowerCase().includes(q)
+    const withLiked = rooms.map((r) => ({ ...r, liked: favIds.has(r.id) }));
+    const filtered = withLiked.filter(
+      (r) => r.name?.toLowerCase().includes(q) || r.code?.toLowerCase().includes(q)
     );
     return filtered.sort((a, b) => {
       if (a.liked !== b.liked) return a.liked ? -1 : 1;
-      return a.name.localeCompare(b.name);
+      return String(a.name || "").localeCompare(String(b.name || ""));
     });
-  }, [rooms, query]);
+  }, [rooms, favIds, query]);
 
-  const toggleLike = (id) => {
-    setRooms((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, liked: !r.liked } : r))
-    );
+  // toggle favorite at /favorites/{uid}/rooms/{roomId}
+  const toggleLike = async (roomId, isLiked) => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const ref = doc(db, "favorites", uid, "rooms", roomId);
+    try {
+      if (isLiked) await deleteDoc(ref);
+      else await setDoc(ref, { createdAt: Date.now() });
+    } catch (e) {
+      console.error("toggle favorite failed:", e);
+    }
   };
 
- const renderItem = ({ item }) => (
-  <TouchableOpacity
-    style={styles.card}
-    activeOpacity={0.9}
-    // 👉 กดที่การ์ด = ไปหน้า RoomDetail
-    onPress={() =>
-  router.push({
-    pathname: "/screens/RoomDetail",
-    params: {
-      roomId: item.id,
-      roomName: item.name,
-      roomCode: item.code,
-      people: item.people,
-      floor: item.floor,
-      image: item.image,
-      description: item.description,   // ✅ ส่งข้อมูลของห้องจริง
-      highlights: item.highlights,
-      bestFor: item.bestFor,
-      atmosphere: item.atmosphere,
-    },
-  })
-}
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.9}
+      onPress={() =>
+        router.push({
+          pathname: "/screens/RoomDetail",
+          params: { ...item }, // ส่งทั้งหมดไปหน้า detail
+        })
+      }
+    >
+      <Image
+        source={typeof item.image === "string" ? { uri: item.image } : item.image}
+        style={styles.cardImage}
+      />
 
-
-  >
-    {/* รูปห้อง */}
-    <Image source={item.image} style={styles.cardImage} />
-
-    {/* เนื้อหาในบัตร */}
-    <View style={styles.cardBody}>
-      <View style={styles.titleRow}>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <TouchableOpacity onPress={() => toggleLike(item.id)} hitSlop={8}>
-          <Ionicons
-            name={item.liked ? "heart" : "heart-outline"}
-            size={22}
-            color={item.liked ? "#ff3b30" : "#9aa0a6"}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.metaRow}>
-        <Text style={styles.metaValue}>ROOM {item.code}</Text>
-      </View>
-
-      <View style={styles.metaRow}>
-        <MaterialIcons name="groups" size={20} style={styles.metaIcon} />
-        <Text style={styles.metaValue}>ความจุ {item.people}</Text>
-      </View>
-
-      <View style={styles.metaRow}>
-        <MaterialIcons name="stairs" size={20} style={styles.metaIcon} />
-        <Text style={styles.metaValue}>ชั้น {item.floor}</Text>
-      </View>
-
-      {/* ปุ่ม Book Now (แยกจาก onPress ของการ์ด) */}
-      <View style={styles.footerRow}>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity
-          style={styles.bookBtn}
-          onPress={(e) => {
-            e.stopPropagation(); // ❌ กันไม่ให้ไปชน onPress ของการ์ด
-            router.push({
-              pathname: "/screens/Booking",
-              params: {
-                roomId: item.id,
-                roomName: item.name,
-                roomCode: item.code,
-              },
-            });
-          }}
-        >
-          <Text style={styles.bookBtnText}>BOOK NOW</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </TouchableOpacity>
-);
-
-
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header + LoginTest */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.push({ pathname: "/(tabs)/Profile" })}>
-          <Image source={require("../../assets/images/profile.jpg")} style={styles.avatar} />
+      <View style={styles.cardBody}>
+        <View style={styles.titleRow}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <TouchableOpacity onPress={() => toggleLike(item.id, item.liked)} hitSlop={8}>
+            <Ionicons
+              name={item.liked ? "heart" : "heart-outline"}
+              size={22}
+              color={item.liked ? "#ff3b30" : "#9aa0a6"}
+            />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.headerTitle}>Meeting Rooms</Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.metaValue}>ROOM {item.code}</Text>
+        </View>
 
-        {/* Search */}
-        <View style={styles.searchWrap}>
+        <View style={styles.metaRow}>
+          <MaterialIcons name="groups" size={20} style={styles.metaIcon} />
+          <Text style={styles.metaValue}>
+            ความจุ{" "}
+            {item.capacityMin && item.capacityMax
+              ? `${item.capacityMin}-${item.capacityMax} คน`
+              : item.people || "—"}
+          </Text>
+        </View>
+
+        <View style={styles.metaRow}>
+          <MaterialIcons name="stairs" size={20} style={styles.metaIcon} />
+          <Text style={styles.metaValue}>ชั้น {item.floor ?? "-"}</Text>
+        </View>
+
+        <View style={styles.footerRow}>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity
+            style={styles.bookBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              router.push({
+                pathname: "/screens/Booking",
+                params: {
+                  roomId: item.id,
+                  roomName: item.name,
+                  roomCode: item.code,
+                },
+              });
+            }}
+          >
+            <Text style={styles.bookBtnText}>BOOK NOW</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => router.push({ pathname: "/(tabs)/Profile" })}>
+            <Image source={require("../../assets/images/profile.jpg")} style={styles.avatar} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.headerTitle}>Meeting Rooms</Text>
+        <View className="searchWrap" style={styles.searchWrap}>
           <Ionicons name="search" size={18} color="#6b7280" style={{ marginRight: 6 }} />
           <TextInput
             style={styles.searchInput}
@@ -156,23 +173,22 @@ export default function HomeScreen() {
             returnKeyType="search"
           />
         </View>
-
-        
       </View>
-      {/* สถิติ */}
+
+      {/* Stats */}
       <View style={styles.statsRow}>
         <StatCard title="Room available today" value={String(stats.available)} />
         <StatCard title="All rooms" value={String(stats.all)} />
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between",marginBottom:10 }}>
+
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <Text style={styles.meetingRoomText}>Meeting room</Text>
         <TouchableOpacity onPress={() => router.push("/screens/RoomCalendar")}>
-      <MaterialIcons name="calendar-month" size={30} style={styles.metaIcon} />
+          <MaterialIcons name="calendar-month" size={30} style={styles.metaIcon} />
         </TouchableOpacity>
-
       </View>
 
-      {/* รายการห้อง */}
+      {/* List */}
       <FlatList
         data={visibleRooms}
         keyExtractor={(item) => item.id}
@@ -213,17 +229,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  loginbutton: { backgroundColor: "#3decff", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  loginText: { color: "#0b3d91", fontWeight: "600" },
   avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: "#00000055" },
 
   headerTitle: { color: "#fff", fontSize: 26, fontWeight: "700", marginTop: 6, marginLeft: 20 },
 
   searchWrap: {
-    marginTop: 10, marginHorizontal: 16, backgroundColor: "#fff", borderRadius: 12,
-    elevation: 2, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 }, flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 10, height: 44, borderWidth: 1, borderColor: "#d7def3",
+    marginTop: 10,
+    marginHorizontal: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "#d7def3",
   },
   searchInput: { flex: 1, fontSize: 15, color: "#1F2937" },
 
@@ -233,16 +258,25 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 28, fontWeight: "800", color: "#2b2d31" },
 
   card: {
-    flexDirection: "row", backgroundColor: "#fff", borderRadius: 16, padding: 10, gap: 10,
-    alignItems: "stretch", elevation: 1, shadowColor: "#000", shadowOpacity: 0.06,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, borderWidth: 1, borderColor: "#E6E8F0",
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 10,
+    gap: 10,
+    alignItems: "stretch",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: "#E6E8F0",
   },
   cardImage: { width: 140, height: 130, borderRadius: 12, backgroundColor: "#e9eefc" },
   cardBody: { flex: 1 },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
   cardTitle: { fontSize: 16, fontWeight: "700", color: "#222", maxWidth: "85%" },
   metaRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
-  metaKey: { fontSize: 11, color: "#8a8f98", marginRight: 6, letterSpacing: 0.4 },
   metaValue: { fontSize: 13, color: "#2b2d31" },
   metaIcon: { color: "#4a4a4a", marginRight: 6 },
 
