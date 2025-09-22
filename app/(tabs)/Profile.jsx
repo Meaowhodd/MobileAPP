@@ -7,167 +7,164 @@ import {
   View,
 } from "react-native";
 
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 export default function ProfileScreen() {
-  
-
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headertext}>My Profile</Text>
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+
+        <Text style={styles.headerText}>My Profile</Text>
       </View>
 
-      <ScrollView>
-        <View style={{ margin: 50 }}>
-          <View style={{ justifyContent: "center", alignItems: "center" }}>
-            <Text style={styles.subheadertext}>John Doe</Text>
-            <View style={styles.divider}></View>
-            <View style={styles.profileimagecontainerlarge}>
-              <Image
-                source={{
-                  uri: "https://www.shutterstock.com/shutterstock/photos/127727240/display_1500/stock-photo-cheerful-young-man-isolated-over-white-background-127727240.jpg",
-                }}
-                style={{ width: 200, height: 200 }}
-              />
-            </View>
+      <ScrollView contentContainerStyle={{ paddingVertical: 20 }}>
+        <View style={{ alignItems: "center" }}>
+          <View style={styles.profileImageContainer}>
+            <Image
+              source={{
+                uri: "https://www.shutterstock.com/shutterstock/photos/127727240/display_1500/stock-photo-cheerful-young-man-isolated-over-white-background-127727240.jpg",
+              }}
+              style={styles.profileImage}
+            />
           </View>
-          <Text style={styles.subheadertextleft}>First Name</Text>
-          <View style={styles.contentbox}>
-            <Text style={styles.contenttext}>John</Text>
-          </View>
-          <Text style={styles.subheadertextleft}>Last Name</Text>
-          <View style={styles.contentbox}>
-            <Text style={styles.contenttext}>Doe</Text>
-          </View>
-          <Text style={styles.subheadertextleft}>Date of birth</Text>
-          <View style={styles.contentbox}>
-            <Text style={styles.contenttext}>16 Jantember 1616</Text>
-          </View>
-          <Text style={styles.subheadertextleft}>Phone Number</Text>
-          <View style={styles.contentbox}>
-            <View style={{ flexDirection: "row", flex: 1 }}>
-              <Text style={styles.contenttext}>[THFlagHere] </Text>
-              <Text style={styles.contenttext}>+66</Text>
-              <Text style={styles.contenttext}> </Text>
-              <Text style={styles.contenttext}>671421849</Text>
-            </View>
-          </View>
-          <Text style={styles.subheadertextleft}>Email Address</Text>
-          <View style={styles.contentbox}>
-            <Text style={styles.contenttext}>john.doe@gmail.com</Text>
-          </View>
-
-          <TouchableOpacity
-            style={{
-              backgroundColor: "#000000ff",
-              padding: 10,
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 10,
-              marginTop: 10,
-              marginLeft: 40,
-              marginRight: 40,
-            }}
-            onPress={() => router.push({ pathname: "/screens/ProfileStack/ProfileSettingScreen" })}
-          >
-            <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
-              Edit Your Profile
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.nameText}>John Doe</Text>
         </View>
 
-        <View style={styles.middle}>
-          <Text style={styles.middletext}>
-            Profile Page Iteration 1 : John Doe
-          </Text>
-          <Text style={styles.middletext}>let me fuh🥀💔</Text>
+        {/* Info Fields */}
+        <View style={{ marginTop: 30 }}>
+          <Text style={styles.label}>First Name</Text>
+          <View style={styles.contentBox}>
+            <Text style={styles.contentText}>John</Text>
+          </View>
+
+          <Text style={styles.label}>Last Name</Text>
+          <View style={styles.contentBox}>
+            <Text style={styles.contentText}>Doe</Text>
+          </View>
+
+          <Text style={styles.label}>Date of Birth</Text>
+          <View style={styles.contentBox}>
+            <Text style={styles.contentText}>16 Jantember 1616</Text>
+          </View>
+
+          <Text style={styles.label}>Phone Number</Text>
+          <View style={styles.contentBox}>
+            <Text style={styles.contentText}>+66 671421849</Text>
+          </View>
+
+          <Text style={styles.label}>Email Address</Text>
+          <View style={styles.contentBox}>
+            <Text style={styles.contentText}>john.doe@gmail.com</Text>
+          </View>
         </View>
+
+        {/* Button */}
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() =>
+            router.push({
+              pathname: "/screens/ProfileStack/ProfileSettingScreen",
+            })
+          }
+        >
+          <Text style={styles.editButtonText}>Edit Your Profile</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
+
+const PRIMARY = "#6C63FF";
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  middletext: {
-    textAlign: "center",
-    fontSize: 30,
-  },
+
+  // ✅ Header ใหม่
   header: {
-    backgroundColor: "#1f66f2",
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  middle: {
-    textAlign: "center",
-    fontSize: 30,
-    flex: 1,
-    justifyContent: "center",
+    backgroundColor: PRIMARY,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingTop: 50, // กัน status bar
+    paddingBottom: 20,
     alignItems: "center",
+    position: "relative",
   },
-  headertext: {
-    textAlign: "left",
-    fontSize: 30,
-    marginTop: 40,
-    marginBottom: 15,
-    marginLeft: 30,
+  headerText: {
     color: "white",
-  },
-
-  subheadertext: {
-    textAlign: "center",
-    fontSize: 25,
+    fontSize: 22,
     fontWeight: "bold",
   },
-
-  subheadertextleft: {
-    textAlign: "left",
-    fontSize: 20,
-    fontWeight: "bold",
+  backButton: {
+    position: "absolute",
+    left: 16,
+    top: 50,
   },
 
-  profileimagecontainerlarge: {
-    margin: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
-    borderBottomLeftRadius: 100,
-    borderBottomRightRadius: 100,
-    borderColor: "black",
-    borderWidth: 2,
+  // Profile
+  profileImageContainer: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 3,
+    borderColor: "#eee",
     overflow: "hidden",
+    marginBottom: 12,
+  },
+  profileImage: {
+    width: "100%",
+    height: "100%",
+  },
+  nameText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginTop: 6,
   },
 
-  contenttext: {
-    textAlign: "left",
-    fontSize: 18,
+  // Labels & content
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 24,
+    marginBottom: 6,
+    marginTop: 14,
   },
-
-  contentbox: {
-    marginLeft: 40,
-    marginRight: 40,
-    marginTop: 10,
-    marginBottom: 20,
+  contentBox: {
+    marginHorizontal: 24,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    borderColor: "black",
-    padding: 10,
+    borderColor: "#ccc",
+    backgroundColor: "#fafafa",
+  },
+  contentText: {
+    fontSize: 16,
+    color: "#333",
   },
 
-  divider: {
-    borderBottomColor: "#000000ff",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    marginTop: 8,
-    marginBottom: 8,
-    alignSelf: "stretch",
+  // Button
+  editButton: {
+    backgroundColor: PRIMARY,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 30,
+    marginHorizontal: 40,
+    alignItems: "center",
+  },
+  editButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "600",
   },
 });
