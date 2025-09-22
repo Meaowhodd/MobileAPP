@@ -1,561 +1,209 @@
-// BookingForm.jsx
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { useMemo, useRef, useState } from "react";
-import { Alert, Platform, Pressable, Modal as RNModal, ScrollView, StyleSheet, View } from "react-native";
-import { Calendar } from "react-native-calendars"; // <- ใช้ปฏิทินในโมดัล
-import { Appbar, Button, Checkbox, Chip, List, Modal, Portal, Provider, TextInput } from "react-native-paper";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Appbar, Button, Card, Chip } from "react-native-paper";
 
-const ACCESSORY_OPTIONS = ["ทีวี", "โปรเจกเตอร์", "ไมค์", "ลำโพง", "ไวท์บอร์ด", "สาย HDMI"];
+const initialData = [
+  {
+    id: "1",
+    room: "Room A-001",
+    people: "8-10 people",
+    floor: "Floor 1",
+    date: "28/12/2025",
+    startTime: "9.00",
+    endTime: "12.00",
+    image: "https://via.placeholder.com/100x80",
+    status: "operation",
+  },
+  {
+    id: "2",
+    room: "Room B-201",
+    people: "8-10 people",
+    floor: "Floor 2",
+    date: "30/12/2025",
+    startTime: "13.00",
+    endTime: "15.00",
+    image: "https://via.placeholder.com/100x80",
+    status: "operation",
+  },
+];
 
-export default function BookingForm() {
-  const [name, setName] = useState("Jafer Adviar");
-  const [room, setRoom] = useState("A-001");
-  const [number, setNumber] = useState("");
+export default function Book() {
+  const [status, setStatus] = useState("operation");
+  const [bookings, setBookings] = useState(initialData);
+  const router = useRouter();
 
-  // Date
-  const [dateObj, setDateObj] = useState(new Date());
-  const [showDate, setShowDate] = useState(false);
-
-  // Time
-  const [startObj, setStartObj] = useState(null);
-  const [endObj, setEndObj] = useState(null);
-  const [showStart, setShowStart] = useState(false);
-  const [showEnd, setShowEnd] = useState(false);
-
-  // Accessories (multi-select)
-  const [accessories, setAccessories] = useState([]); // string[]
-  const [accModalVisible, setAccModalVisible] = useState(false);
-
-  // ====== DROPDOWN เวลาแบบ custom ======
-  const startRef = useRef(null);
-  const endRef = useRef(null);
-  const [startRect, setStartRect] = useState(null);
-  const [endRect, setEndRect] = useState(null);
-  const [startDropVisible, setStartDropVisible] = useState(false);
-  const [endDropVisible, setEndDropVisible] = useState(false);
-
-  const openStartDropdown = () => {
-    startRef.current?.measureInWindow((x, y, w, h) => {
-      setStartRect({ x, y, w, h });
-      setStartDropVisible(true);
-    });
-  };
-  const openEndDropdown = () => {
-    endRef.current?.measureInWindow((x, y, w, h) => {
-      setEndRect({ x, y, w, h });
-      setEndDropVisible(true);
-    });
-  };
-  // ======================================================
-
-  // helpers
-  const formatDate = (d) =>
-    d.toLocaleDateString("th-TH", { day: "2-digit", month: "long", year: "numeric" });
-
-  const formatTime = (d) =>
-    d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-  const calcDurationMinutes = (s, e) => Math.max(0, Math.round((e - s) / 60000));
-
-  // DateTimePicker handlers (คงเดิม)
-  const onChangeDate = (_, selected) => {
-    setShowDate(false);
-    if (!selected) return;
-    const newDate = new Date(selected);
-    setDateObj(newDate);
-
-    if (startObj) {
-      const s = new Date(newDate);
-      s.setHours(startObj.getHours(), startObj.getMinutes(), 0, 0);
-      setStartObj(s);
-    }
-    if (endObj) {
-      const e = new Date(newDate);
-      e.setHours(endObj.getHours(), endObj.getMinutes(), 0, 0);
-      setEndObj(e);
-    }
+  // กดยกเลิก
+  const handleCancel = (id) => {
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: "canceled" } : b))
+    );
   };
 
-  const onChangeStart = (_, selected) => {
-    setShowStart(false);
-    if (!selected) return;
-    const start = new Date(dateObj);
-    start.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-
-    // NEW: ถ้ามี end เดิมอยู่แล้วและเกิน 3 ชั่วโมงให้เคลียร์ end
-    if (endObj) {
-      if (endObj < start) {
-        Alert.alert("เวลาไม่ถูกต้อง", "End Time ต้องไม่ก่อน Start Time");
-        setEndObj(null);
-      } else {
-        const diffMs = endObj - start;
-        if (diffMs > 3 * 60 * 60 * 1000) {
-          Alert.alert("เกินเวลาที่กำหนด", "เลือกได้สูงสุด 3 ชั่วโมงเท่านั้น");
-          setEndObj(null);
-        }
-      }
-    }
-
-    setStartObj(start);
-  };
-
-  const onChangeEnd = (_, selected) => {
-    setShowEnd(false);
-    if (!selected) return;
-    const end = new Date(dateObj);
-    end.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-
-    // NEW: เช็คกับ start — ต้องไม่ก่อน start และไม่เกิน 3 ชั่วโมง
-    if (startObj && end < startObj) {
-      Alert.alert("เวลาไม่ถูกต้อง", "End Time ต้องไม่ก่อน Start Time");
-      return;
-    }
-    if (startObj) {
-      const diffMs = end - startObj;
-      if (diffMs > 3 * 60 * 60 * 1000) {
-        Alert.alert("เกินเวลาที่กำหนด", "เลือกได้สูงสุด 3 ชั่วโมงเท่านั้น");
-        return;
-      }
-    }
-
-    setEndObj(end);
-  };
-
-  // ----- react-native-calendars helpers -----
-  const toYMD = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  };
-  const selectedYMD = toYMD(dateObj);
-
-  const handleCalendarPick = (day) => {
-    const [y, m, d] = day.dateString.split("-").map((x) => parseInt(x, 10));
-    const newDate = new Date(dateObj);
-    newDate.setFullYear(y, m - 1, d);
-    newDate.setHours(0, 0, 0, 0);
-    setDateObj(newDate);
-
-    if (startObj) {
-      const s = new Date(newDate);
-      s.setHours(startObj.getHours(), startObj.getMinutes(), 0, 0);
-      setStartObj(s);
-    }
-    if (endObj) {
-      const e = new Date(newDate);
-      e.setHours(endObj.getHours(), endObj.getMinutes(), 0, 0);
-      setEndObj(e);
-    }
-    setShowDate(false);
-  };
-  // ------------------------------------------------------
-
-  // ---------- time slots ----------
-  const timeSlots = useMemo(() => {
-    const slots = [];
-    const startH = 7;
-    const endH = 24;   // ถึงเที่ยงคืน
-    const stepMin = 15;
-    for (let h = startH; h <= endH; h++) {
-      for (let m = 0; m < 60; m += stepMin) {
-        const d = new Date(dateObj);
-        d.setHours(h, m, 0, 0);
-        slots.push(d);
-      }
-    }
-    return slots;
-  }, [dateObj]);
-
-  const pickStartFromSlot = (d) => {
-    const chosen = new Date(dateObj);
-    chosen.setHours(d.getHours(), d.getMinutes(), 0, 0);
-
-    // NEW: ถ้ามี end เดิมอยู่แล้ว ตรวจว่าช่วงเวลาไม่เกิน 3 ชม.และ end ไม่ก่อน start
-    if (endObj) {
-      if (endObj < chosen) {
-        Alert.alert("เวลาไม่ถูกต้อง", "End Time ต้องไม่ก่อน Start Time");
-        setEndObj(null);
-      } else {
-        const diffMs = endObj - chosen;
-        if (diffMs > 3 * 60 * 60 * 1000) {
-          Alert.alert("เกินเวลาที่กำหนด", "เลือกได้สูงสุด 3 ชั่วโมงเท่านั้น");
-          setEndObj(null);
-        }
-      }
-    }
-
-    setStartObj(chosen);
-    setStartDropVisible(false);
-  };
-
-  const pickEndFromSlot = (d) => {
-    const chosen = new Date(dateObj);
-    chosen.setHours(d.getHours(), d.getMinutes(), 0, 0);
-
-    // NEW: ต้องไม่ก่อน start และไม่เกิน 3 ชั่วโมง
-    if (startObj && chosen < startObj) {
-      Alert.alert("เวลาไม่ถูกต้อง", "End Time ต้องไม่ก่อน Start Time");
-      return;
-    }
-    if (startObj) {
-      const diffMs = chosen - startObj;
-      if (diffMs > 3 * 60 * 60 * 1000) {
-        Alert.alert("เกินเวลาที่กำหนด", "เลือกได้สูงสุด 3 ชั่วโมงเท่านั้น");
-        return;
-      }
-    }
-
-    setEndObj(chosen);
-    setEndDropVisible(false);
-  };
-  // -------------------------------
-
-  const onConfirm = () => {
-    if (!name.trim() || !room.trim() || !number || !startObj || !endObj) return;
-    const mins = calcDurationMinutes(startObj, endObj);
-    if (mins <= 0 || mins > 180) return;
-  };
+  // filter ตาม status
+  const filtered = bookings.filter((b) => b.status === status);
 
   return (
-    <Provider>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerWrap}>
-        <Appbar.Header style={styles.header}>
-          <Appbar.BackAction onPress={() => {}} color="#fff" />
-          <Appbar.Content title="Booking Form" titleStyle={styles.headerTitle} />
-          <Appbar.Action icon="bell-outline" onPress={() => {}} />
-          <Appbar.Action
-            onPress={() => {}}
-            icon={({ size }) => (
-              <View
-                style={{
-                  width: size - 2,
-                  height: size - 2,
-                  borderRadius: (size - 2) / 2,
-                  backgroundColor: "#ddd",
-                }}
-              />
-            )}
-          />
-        </Appbar.Header>
+        <View style={styles.headerRow}>
+        
+         <Appbar.BackAction onPress={() => router.push("/(tabs)/Home")} color="#fff"/>
+
+
+          {/* Title */}
+          <Text style={styles.headerTitle}>My Booking</Text>
+
+          {/* Right Buttons */}
+          <View style={styles.rightButtons}>
+            <Appbar.Action
+              icon="bell-outline"
+              color="white"
+              onPress={() => router.push("/Inbox")}
+            />
+            <Appbar.Action
+              icon="plus"
+              color="white"
+              onPress={() => router.push("/screens/Booking")}
+            />
+          </View>
+        </View>
       </View>
 
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        <TextInput label="Name" value={name} onChangeText={setName} style={styles.input} mode="outlined" />
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <Chip
+          selected={status === "operation"}
+          onPress={() => setStatus("operation")}
+          style={status === "operation" ? styles.chipActive : styles.chip}
+        >
+          Operation
+        </Chip>
+        <Chip
+          selected={status === "completed"}
+          onPress={() => setStatus("completed")}
+          style={status === "completed" ? styles.chipActive : styles.chip}
+        >
+          Completed
+        </Chip>
+        <Chip
+          selected={status === "canceled"}
+          onPress={() => setStatus("canceled")}
+          style={status === "canceled" ? styles.chipActive : styles.chip}
+        >
+          Canceled
+        </Chip>
+      </View>
 
-        <TextInput label="Room" value={room} onChangeText={setRoom} style={styles.input} mode="outlined" />
+      {/* Booking List */}
+      <ScrollView style={{ flex: 1 }}>
+        {filtered.map((item) => (
+          <Card key={item.id} style={styles.card}>
+            <View style={styles.cardContent}>
+              <Image source={{ uri: item.image }} style={styles.roomImage} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.roomName}>{item.room}</Text>
+                <Text>{item.people}</Text>
+                <Text>{item.floor}</Text>
+                <Text>Date: {item.date}</Text>
+                <Text>
+                  Start Time {item.startTime} | End Time {item.endTime}
+                </Text>
 
-        <TextInput
-          label="Number"
-          placeholder="Number of people"
-          value={number}
-          onChangeText={(t) => /^\d*$/.test(t) && setNumber(t)}
-          style={styles.input}
-          mode="outlined"
-          keyboardType="numeric"
-        />
-
-        {/* Date (กดแล้วเปิดปฏิทิน) */}
-        <Pressable onPress={() => setShowDate(true)}>
-          <TextInput
-            label="Date"
-            value={formatDate(dateObj)}
-            style={styles.input}
-            mode="outlined"
-            editable={false}
-            right={
-              <TextInput.Icon
-                icon="calendar"
-                onPress={() => setShowDate(true)}
-                forceTextInputFocus={false}
-              />
-            }
-          />
-        </Pressable>
-
-        {/* Modal ปฏิทิน */}
-        <Portal>
-          <Modal
-            visible={showDate}
-            onDismiss={() => setShowDate(false)}
-            contentContainerStyle={{ margin: 16, backgroundColor: "white", borderRadius: 16, padding: 6 }}
-          >
-            <Calendar
-              initialDate={selectedYMD}
-              onDayPress={handleCalendarPick}
-              markedDates={{
-                [selectedYMD]: { selected: true, disableTouchEvent: true, selectedDotColor: "orange" },
-              }}
-              enableSwipeMonths
-            />
-            <View style={{ height: 8 }} />
-            <Button mode="text" onPress={() => setShowDate(false)}>ปิด</Button>
-          </Modal>
-        </Portal>
-
-        {/* Start Time (dropdown ตรงปุ่มกด) */}
-        <View ref={startRef} collapsable={false}>
-          <TextInput
-            label="Start Time"
-            placeholder="Choose a booking time"
-            value={startObj ? formatTime(startObj) : ""}
-            style={styles.input}
-            mode="outlined"
-            editable={false}
-            onPressIn={openStartDropdown}
-            right={
-              <TextInput.Icon
-                icon="clock"
-                onPress={openStartDropdown}
-                forceTextInputFocus={false}
-              />
-            }
-          />
-        </View>
-
-        {/* End Time (dropdown ตรงปุ่มกด) */}
-        <View ref={endRef} collapsable={false}>
-          <TextInput
-            label="End Time"
-            placeholder="Select your booking end time"
-            value={endObj ? formatTime(endObj) : ""}
-            style={styles.input}
-            mode="outlined"
-            editable={false}
-            onPressIn={openEndDropdown}
-            right={
-              <TextInput.Icon
-                icon="clock"
-                onPress={openEndDropdown}
-                forceTextInputFocus={false}
-              />
-            }
-          />
-        </View>
-
-        {/* Native pickers (ยังเผื่อไว้สำหรับ iOS หรือกด "กำหนดเวลาเอง") */}
-        {showStart && (
-          <DateTimePicker
-            value={startObj || new Date()}
-            mode="time"
-            is24Hour
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={onChangeStart}
-          />
-        )}
-        {showEnd && (
-          <DateTimePicker
-            value={endObj || (startObj || new Date())}
-            mode="time"
-            is24Hour
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={onChangeEnd}
-          />
-        )}
-
-        {/* Accessories (multi-select via Modal) */}
-        <Pressable onPress={() => setAccModalVisible(true)}>
-          <TextInput
-            label="Accessories"
-            placeholder="เลือกอุปกรณ์ที่ต้องการ"
-            value={accessories.join(", ")}
-            style={styles.input}
-            mode="outlined"
-            editable={false}
-            right={<TextInput.Icon icon="chevron-down" onPress={() => setAccModalVisible(true)} />}
-          />
-        </Pressable>
-
-        <View style={styles.chipsWrap}>
-          {accessories.map((acc) => (
-            <Chip key={acc} onClose={() => setAccessories((p) => p.filter((x) => x !== acc))} style={styles.chip}>
-              {acc}
-            </Chip>
-          ))}
-        </View>
-
-        <Portal>
-          <Modal
-            visible={accModalVisible}
-            onDismiss={() => setAccModalVisible(false)}
-            contentContainerStyle={styles.modalBox}
-          >
-            <List.Section>
-              <List.Subheader>เลือกอุปกรณ์ (เลือกได้หลายอย่าง)</List.Subheader>
-              {ACCESSORY_OPTIONS.map((item) => (
-                <List.Item
-                  key={item}
-                  title={item}
-                  onPress={() =>
-                    setAccessories((prev) =>
-                      prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]
-                    )
-                  }
-                  right={() => <Checkbox status={accessories.includes(item) ? "checked" : "unchecked"} />}
-                />
-              ))}
-            </List.Section>
-
-            <View style={styles.modalButtons}>
-              <Button mode="text" onPress={() => setAccessories([])}>ล้างทั้งหมด</Button>
-              <Button mode="contained" onPress={() => setAccModalVisible(false)}>เสร็จสิ้น</Button>
+                {/* Buttons */}
+                <View style={styles.buttonRow}>
+                  <Button
+                    mode="outlined"
+                    onPress={() => handleCancel(item.id)}
+                    style={styles.cancelButton}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/screens/Booking",
+                        params: { id: item.id },
+                      })
+                    }
+                    style={styles.editButton}
+                  >
+                    Edit
+                  </Button>
+                </View>
+              </View>
             </View>
-          </Modal>
-        </Portal>
-
-        {startObj && endObj && (
-          <TextInput
-            label="Duration"
-            value={`${Math.floor(calcDurationMinutes(startObj, endObj) / 60)} ชม. ${
-              calcDurationMinutes(startObj, endObj) % 60
-            } นาที`}
-            style={styles.input}
-            mode="outlined"
-            editable={false}
-          />
-        )}
-
-        <View style={styles.buttonRow}>
-          <Button mode="outlined" style={styles.cancelButton} onPress={() => {}}>Cancel</Button>
-          <Button mode="contained" style={styles.confirmButton} onPress={() => onConfirm()}>Confirm</Button>
-        </View>
+          </Card>
+        ))}
       </ScrollView>
-
-      {/* ====== โมดัล dropdown เวลาแบบ custom (แสดงตรงพิกัด) ====== */}
-      <RNModal
-        visible={startDropVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setStartDropVisible(false)}
-      >
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setStartDropVisible(false)}>
-          {startRect && (
-            <View
-              style={{
-                position: "absolute",
-                top: startRect.y + startRect.h,
-                left: startRect.x,
-                width: startRect.w,
-                maxHeight: 320,
-                backgroundColor: "white",
-                borderRadius: 12,
-                elevation: 8,
-                shadowColor: "#000",
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 4 },
-              }}
-            >
-              <ScrollView>
-                {timeSlots.map((d, idx) => (
-                  <List.Item
-                    key={idx}
-                    title={formatTime(d)}
-                    onPress={() => pickStartFromSlot(d)}
-                    left={(props) => <List.Icon {...props} icon="clock-outline" />}
-                  />
-                ))}
-                <List.Item
-                  title="กำหนดเวลาเอง…"
-                  onPress={() => {
-                    setStartDropVisible(false);
-                    setShowStart(true);
-                  }}
-                  left={(props) => <List.Icon {...props} icon="tune" />}
-                />
-              </ScrollView>
-            </View>
-          )}
-        </Pressable>
-      </RNModal>
-
-      <RNModal
-        visible={endDropVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEndDropVisible(false)}
-      >
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setEndDropVisible(false)}>
-          {endRect && (
-            <View
-              style={{
-                position: "absolute",
-                top: endRect.y + endRect.h,
-                left: endRect.x,
-                width: endRect.w,
-                maxHeight: 320,
-                backgroundColor: "white",
-                borderRadius: 12,
-                elevation: 8,
-                shadowColor: "#000",
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 4 },
-              }}
-            >
-              <ScrollView>
-                {timeSlots.map((d, idx) => (
-                  <List.Item
-                    key={idx}
-                    title={formatTime(d)}
-                    onPress={() => pickEndFromSlot(d)}
-                    left={(props) => <List.Icon {...props} icon="clock-outline" />}
-                  />
-                ))}
-                <List.Item
-                  title="กำหนดเวลาเอง…"
-                  onPress={() => {
-                    setEndDropVisible(false);
-                    setShowEnd(true);
-                  }}
-                  left={(props) => <List.Icon {...props} icon="tune" />}
-                />
-              </ScrollView>
-            </View>
-          )}
-        </Pressable>
-      </RNModal>
-      {/* ==================================================== */}
-    </Provider>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  input: { marginBottom: 16 },
-  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  chip: { marginRight: 6, marginBottom: 6 },
-  modalBox: {
-    marginHorizontal: 16,
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 16,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  buttonRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 24 },
-  cancelButton: { flex: 1, marginRight: 10, borderColor: "#ccc" },
-  confirmButton: { flex: 1, marginLeft: 10, backgroundColor: "#6C63FF" },
+  container: { flex: 1, backgroundColor: "#fff" },
+
+  // ✅ Header ใหม่
   headerWrap: {
-    overflow: "hidden",
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
     backgroundColor: "#6C63FF",
-    paddingBottom: 34,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingTop: 50, // กัน status bar
+    paddingBottom: 14,
+    paddingHorizontal: 16,
   },
-  header: {
-    backgroundColor: "#6C63FF",
+  headerRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginRight: 10,
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
   },
   headerTitle: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
     color: "#fff",
-    fontWeight: "700",
-    fontSize: 28,
+    fontSize: 20,
+    fontWeight: "bold",
   },
+  rightButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  // Tabs
+  tabContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 10,
+    backgroundColor: "#f8f8f8",
+  },
+  chip: { backgroundColor: "#e0e0e0" },
+  chipActive: { backgroundColor: "#624bff" },
+
+  // Booking cards
+  card: { margin: 10, padding: 10 },
+  cardContent: { flexDirection: "row" },
+  roomImage: { width: 90, height: 70, borderRadius: 8 },
+  roomName: { fontWeight: "bold", fontSize: 16 },
+
+  // Buttons
+  buttonRow: {
+  flexDirection: "row",
+  justifyContent: "space-between", 
+  marginTop: 12,
+  gap: 12, // ✅ RN 0.71+ รองรับ gap แล้ว (เว้นช่องไฟอัตโนมัติ)
+},
+cancelButton: {
+  flex: 1,
+  borderColor: "#000",
+},
+editButton: {
+  flex: 1,
+  backgroundColor: "#000",
+},
+
 });

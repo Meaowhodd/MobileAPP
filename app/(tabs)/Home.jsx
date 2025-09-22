@@ -138,11 +138,6 @@ export default function HomeScreen() {
       {/* Header + LoginTest */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.push({ pathname: "/screens/Login" })}>
-            <View style={styles.loginbutton}>
-              <Text style={styles.loginText}>LoginTest</Text>
-            </View>
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push({ pathname: "/(tabs)/Profile" })}>
           <Image source={require("../../assets/images/profile.jpg")} style={styles.avatar} />
           </TouchableOpacity>
@@ -199,7 +194,7 @@ function StatCard({ title, value }) {
   );
 }
 
-const PRIMARY = "#1f66f2";
+const PRIMARY = "#6C63FF";
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
@@ -252,7 +247,7 @@ const styles = StyleSheet.create({
   metaIcon: { color: "#4a4a4a", marginRight: 6 },
 
   footerRow: { marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  bookBtn: { backgroundColor: "#1e5cff", paddingHorizontal: 14, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  bookBtn: { backgroundColor: "#6C63FF", paddingHorizontal: 14, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   bookBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   meetingRoomText: { fontSize: 24, fontWeight: "500", marginLeft: 16, marginTop: 8, marginBottom: 4, color: "#222" },
 });
