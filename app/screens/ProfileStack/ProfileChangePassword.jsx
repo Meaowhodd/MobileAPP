@@ -6,52 +6,57 @@ import {
   View,
 } from "react-native";
 
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-export default function ProfileChangeEmail() {
+export default function ProfileChangePassword() {
   const navigation = useNavigation();
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headertext}>Settings</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerText}>Settings</Text>
       </View>
-      <View style={{ margin: 50 }}>
-        <View style={{ alignItems: "left" }}>
-          <Text style={styles.subheadertext}>Change Password</Text>
-          <View style={styles.divider}></View>
-        </View>
-        <Text style={styles.subheadertextleft}>Current Password</Text>
+
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Change Password</Text>
+        <View style={styles.divider} />
+
+        <Text style={styles.label}>Current Password</Text>
         <TextInput
-          style={styles.inputcontentbox}
-          placeholder="Your current password . . ."
-        />
-        <Text style={styles.subheadertextleft}>New Password</Text>
-        <TextInput
-          style={styles.inputcontentbox}
-          placeholder="Your current password . . ."
+          style={styles.input}
+          placeholder="Your current password..."
+          secureTextEntry
         />
 
-        <View style={{ flex: 1, flexDirection: "row-reverse" }}>
+        <Text style={styles.label}>New Password</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Your new password..."
+          secureTextEntry
+        />
+
+        {/* Buttons */}
+        <View style={styles.actionRow}>
           <TouchableOpacity
-            style={styles.button1}
+            style={[styles.actionButton, { backgroundColor: "#FF4D4D" }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
-              Confirm{/*Wont doing anything Yet*/}
-            </Text>
+            <Text style={styles.actionButtonText}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.button1,
-              { backgroundColor: "#ff4d4dff", marginRight: 20, width: 100 },
-            ]}
+            style={[styles.actionButton, { backgroundColor: "#6C63FF" }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={{ color: "white", textAlign: "center", fontSize: 20 }}>
-              Cancel{/*Wont doing anything Yet*/}
-            </Text>
+            <Text style={styles.actionButtonText}>Confirm</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -59,122 +64,82 @@ export default function ProfileChangeEmail() {
   );
 }
 
+const PRIMARY = "#6C63FF";
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  middletext: {
-    textAlign: "center",
-    fontSize: 30,
-  },
-  header: {
-    backgroundColor: "#1f66f2ff",
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  middle: {
-    textAlign: "center",
-    fontSize: 30,
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headertext: {
-    textAlign: "left",
-    fontSize: 30,
-    marginTop: 40,
-    marginBottom: 15,
-    marginLeft: 30,
-    color: "white",
-  },
 
-  subheadertext: {
-    textAlign: "left",
-    fontSize: 25,
+  // Header
+  header: {
+    backgroundColor: PRIMARY,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingTop: 50,
+    paddingBottom: 20,
+    alignItems: "center",
+    position: "relative",
+  },
+  headerText: {
+    color: "white",
+    fontSize: 22,
     fontWeight: "bold",
   },
+  backButton: {
+    position: "absolute",
+    left: 16,
+    top: 50,
+  },
 
-  subheadertextleft: {
-    textAlign: "left",
+  // Content
+  content: {
+    padding: 24,
+  },
+  sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
+    marginBottom: 8,
   },
-
-  profileimagecontainermid: {
-    margin: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
-    borderBottomLeftRadius: 100,
-    borderBottomRightRadius: 100,
-    borderColor: "black",
-    borderWidth: 2,
-    overflow: "hidden",
-    width: 100,
-    height: 100,
-  },
-
-  contenttext: {
-    textAlign: "left",
-    fontSize: 18,
-  },
-
-  contentbox: {
-    marginLeft: 40,
-    marginRight: 40,
-    marginTop: 10,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    borderColor: "black",
-    padding: 10,
-  },
-
-  inputcontentbox: {
-    marginLeft: 40,
-    marginRight: 40,
-    marginTop: 10,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    borderColor: "black",
-    padding: 10,
-    fontSize: 18,
-  },
-
   divider: {
-    borderBottomColor: "#000000ff",
+    borderBottomColor: "#ccc",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    marginTop: 8,
     marginBottom: 24,
-    alignSelf: "stretch",
   },
 
-  valueViewrow: {
+  // Input
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: "#fafafa",
+    marginBottom: 20,
+  },
+
+  // Buttons
+  actionRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginRight: 40,
+    marginTop: 20,
   },
-
-  button1: {
-    backgroundColor: "#1f66f2ff",
-    padding: 10,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    marginTop: 10,
-    marginRight: 40,
-    width: 200,
-    alignSelf: "flex-end",
+  actionButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginHorizontal: 5,
+  },
+  actionButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
