@@ -2,12 +2,12 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    FlatList,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 
@@ -95,16 +95,26 @@ export default function RoomCalendar() {
   );
 }
 
+const PRIMARY = "#6C63FF";
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#4f46e5",
-    padding: 16,
-  },
-  headerTitle: { color: "#fff", fontSize: 20, fontWeight: "bold" },
+  backgroundColor: PRIMARY,
+  borderBottomLeftRadius: 16,
+  borderBottomRightRadius: 16,
+  paddingBottom: 14,
+  flexDirection: "row",              // ✅ จัด layout เป็นแนวนอน
+  alignItems: "center",              // ✅ จัดปุ่มให้อยู่ตรงกลางแนวตั้ง
+  justifyContent: "space-between",   // ✅ จัดให้ Back ← Title → Notification balance กัน
+  paddingTop: 50,                    // ✅ กันชน StatusBar ด้านบน
+  paddingHorizontal: 16,
+},
+headerTitle: {
+  color: "#fff",
+  fontSize: 20,
+  fontWeight: "bold",
+},
   calendarWrap: {
     margin: 16,
     borderRadius: 12,
