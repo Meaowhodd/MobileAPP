@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
@@ -216,23 +217,19 @@ export default function ProfileSettingScreen() {
           onChangeText={setPhone}
         />
 
-        <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Account</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 30 ,marginLeft: 24}]}>Account</Text>
 
         <View style={styles.valueRow}>
           <Text style={styles.labelInline}>E-mail:</Text>
           <Text style={styles.valueText}>{email}</Text>
         </View>
 
-        <TouchableOpacity style={styles.buttonPrimary} onPress={() => Alert.alert("เปลี่ยนอีเมล", "ยังไม่เชื่อม")}>
-          <Text style={styles.buttonText}>Change E-mail</Text>
-        </TouchableOpacity>
-
         <View style={styles.valueRow}>
           <Text style={styles.labelInline}>Password:</Text>
           <Text style={styles.valueText}>**********</Text>
         </View>
 
-        <TouchableOpacity style={styles.buttonPrimary} onPress={() => Alert.alert("เปลี่ยนรหัสผ่าน", "ยังไม่เชื่อม")}>
+        <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.push({pathname: "/screens/ProfileStack/ProfileChangePassword"})}>
           <Text style={styles.buttonText}>Change Password</Text>
         </TouchableOpacity>
 

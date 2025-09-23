@@ -48,8 +48,7 @@ export default function Book() {
       {/* Header */}
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
-        
-         <Appbar.BackAction onPress={() => router.push("/(tabs)/Home")} color="#fff"/>
+
 
 
           {/* Title */}

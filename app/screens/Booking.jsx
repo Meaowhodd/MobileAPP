@@ -1,6 +1,17 @@
-// BookingForm.jsx
+// app/screens/BookingForm.jsx
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import {
+  addDoc,
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  Timestamp,
+  where,
+} from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -21,49 +32,59 @@ import {
   Provider,
   TextInput,
 } from "react-native-paper";
-
-import {
-  addDoc,
-  collection,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
+
+const COLOR = {
+  primary: "#6A5AE0",
+  border: "#D7D9E0",
+  text: "#111827",
+  muted: "#6B7280",
+  cancelBg: "#E8E9F0",
+  slotSelBg: "#F3F0FF",
+  green: "#22C55E",
+  red: "#EF4444",
+  white: "#FFFFFF",
+};
+
+const BASE_SLOTS = [
+  { id: "S1", label: "08.00-10.00", start: 8, end: 10 },
+  { id: "S2", label: "10.00-12.00", start: 10, end: 12 },
+  { id: "S3", label: "13.00-15.00", start: 13, end: 15 },
+  { id: "S4", label: "15.00-17.00", start: 15, end: 17 },
+];
 
 const ACCESSORY_OPTIONS = ["ทีวี", "โปรเจกเตอร์", "ไมค์", "ลำโพง", "ไวท์บอร์ด", "สาย HDMI"];
 
-// สลอตเวลา 4 ช่องตามภาพ + map เป็น slotId S1..S4
-const SLOT_DEFS = [
-  { id: "S1", label: "08.00-10.00", start: 8, end: 10, available: true },
-  { id: "S2", label: "10.00-12.00", start: 10, end: 12, available: false },
-  { id: "S3", label: "13.00-15.00", start: 13, end: 15, available: false },
-  { id: "S4", label: "15.00-17.00", start: 15, end: 17, available: true },
-];
+const inputColors = (hasValue) => ({
+  outlineColor: hasValue ? COLOR.text : COLOR.border,
+  activeOutlineColor: hasValue ? COLOR.text : COLOR.primary,
+  textColor: COLOR.text,
+});
 
 function SlotButton({ label, available, selected, onPress }) {
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
+      disabled={!available}
       style={[
         styles.slotBtn,
         !available && styles.slotBtnDisabled,
         selected && styles.slotBtnSelected,
       ]}
-      disabled={!available}
     >
-      <View style={styles.dotRow}>
+      <View style={styles.slotInner}>
         <View
           style={[
             styles.dot,
-            { backgroundColor: available ? "#22c55e" : "#ef4444" },
+            { backgroundColor: available ? COLOR.green : COLOR.red },
           ]}
         />
         <Text
           style={[
             styles.slotText,
-            !available && { color: "#9ca3af" },
-            selected && { color: "#111827", fontWeight: "700" },
+            !available && { color: "#9CA3AF" },
+            selected && { color: COLOR.text, fontWeight: "700" },
           ]}
         >
           {label}
@@ -74,64 +95,130 @@ function SlotButton({ label, available, selected, onPress }) {
 }
 
 export default function BookingForm() {
-  const [name, setName] = useState("Jafer Adviar");
-  const [room, setRoom] = useState("A-001");
-  const [number, setNumber] = useState("");
+  const params = useLocalSearchParams();
 
-  // วันที่
+  const [roomId, setRoomId] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+  const [capacityMin, setCapacityMin] = useState(null);
+  const [capacityMax, setCapacityMax] = useState(null);
+
   const [dateObj, setDateObj] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
 
-  // สลอตที่เลือก (เก็บทั้งอ็อบเจ็กต์)
+  const [bookedSlots, setBookedSlots] = useState(new Set()); // <-- สลอตที่ถูกจองของวันนั้นๆ
   const [slot, setSlot] = useState(null);
 
-  // Accessories
   const [accessories, setAccessories] = useState([]);
   const [accModalVisible, setAccModalVisible] = useState(false);
 
-  // helper
+  // รับค่าจาก RoomDetail
+  useEffect(() => {
+    if (params?.roomId) setRoomId(String(params.roomId));
+    if (params?.roomName) setRoomName(String(params.roomName));
+    if (params?.roomCode) setRoomCode(String(params.roomCode));
+    if (params?.capacityMin) setCapacityMin(Number(params.capacityMin));
+    if (params?.capacityMax) setCapacityMax(Number(params.capacityMax));
+  }, [params]);
+
+  // เติมข้อมูลห้องจาก Firestore (เผื่อกดเข้ามาจากที่อื่น)
+  useEffect(() => {
+    if (!roomId) return;
+    const ref = doc(db, "rooms", roomId);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) return;
+        const d = snap.data();
+        if (!roomName && d.name) setRoomName(d.name);
+        if (!roomCode && d.code) setRoomCode(d.code);
+        if (capacityMin == null && typeof d.capacityMin === "number") setCapacityMin(d.capacityMin);
+        if (capacityMax == null && typeof d.capacityMax === "number") setCapacityMax(d.capacityMax);
+      },
+      (err) => console.error("rooms doc onSnapshot:", err)
+    );
+    return unsub;
+  }, [roomId]);
+
+  // อ่านการจองของ "ห้องนี้" ใน "วันที่เลือก" เพื่อบอกว่าสลอตไหนไม่ว่าง
+  useEffect(() => {
+    if (!roomId || !dateObj) return;
+
+    const start = new Date(dateObj);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(dateObj);
+    end.setHours(23, 59, 59, 999);
+
+    const q = query(
+      collection(db, "bookings"),
+      where("roomId", "==", roomId),
+      where("slotStart", ">=", Timestamp.fromDate(start)),
+      where("slotStart", "<=", Timestamp.fromDate(end))
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const taken = new Set();
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          if (data?.slotId) taken.add(String(data.slotId));
+        });
+        setBookedSlots(taken);
+        // ถ้าสลอตที่เลือกถูกจองระหว่างรอ realtime -> เคลียร์
+        setSlot((s) => (s && taken.has(s.id) ? null : s));
+      },
+      (err) => console.error("bookings onSnapshot:", err)
+    );
+
+    return unsub;
+  }, [roomId, dateObj]);
+
+  // slot list พร้อม availability จาก Firestore
+  const slots = useMemo(
+    () => BASE_SLOTS.map((s) => ({ ...s, available: !bookedSlots.has(s.id) })),
+    [bookedSlots]
+  );
+
   const formatDate = (d) =>
     d.toLocaleDateString("th-TH", { day: "2-digit", month: "long", year: "numeric" });
 
-  // calendar helpers
   const toYMD = (d) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   };
-  const selectedYMD = toYMD(dateObj);
 
-  const handleCalendarPick = (day) => {
-    const [y, m, d] = day.dateString.split("-").map((x) => parseInt(x, 10));
+  const onPickCalendar = (day) => {
+    const [y, m, dd] = day.dateString.split("-").map((x) => parseInt(x, 10));
     const newDate = new Date(dateObj);
-    newDate.setFullYear(y, m - 1, d);
+    newDate.setFullYear(y, m - 1, dd);
     newDate.setHours(0, 0, 0, 0);
     setDateObj(newDate);
     setShowDate(false);
   };
 
-  // เลือกสลอต
-  const chooseSlot = (s) => {
-    if (!s.available) return;
-    setSlot(s);
-  };
+  const chooseSlot = (s) => s.available && setSlot(s);
 
-  // Firestore: บันทึกการจองให้ตรง rules
+  const capacityDisplay = useMemo(() => {
+    if (capacityMin == null && capacityMax == null) return "";
+    if (capacityMin != null && capacityMax != null) return `${capacityMin} - ${capacityMax}`;
+    if (capacityMin != null) return String(capacityMin);
+    return String(capacityMax);
+  }, [capacityMin, capacityMax]);
+
   const onConfirm = async () => {
-    // ตรวจฟอร์ม
-    if (!name.trim() || !room.trim() || !number.trim() || !slot) {
-      Alert.alert("กรอกไม่ครบ", "กรุณากรอกข้อมูลและเลือกช่วงเวลาให้ครบ");
+    if (!roomName || !roomCode || capacityMin == null || capacityMax == null || !slot) {
+      Alert.alert("กรอกไม่ครบ", "ข้อมูลห้อง/ความจุ/ช่วงเวลายังไม่ครบ");
       return;
     }
-
     const uid = auth.currentUser?.uid;
     if (!uid) {
       Alert.alert("ยังไม่ได้เข้าสู่ระบบ", "โปรดเข้าสู่ระบบก่อนทำรายการ");
       return;
     }
 
-    // ตรวจช่วงเวลา: ภายใน 7 วันนับจากปัจจุบัน + ไม่ย้อนหลัง (ตาม rules)
     const startDate = new Date(dateObj);
     startDate.setHours(slot.start, 0, 0, 0);
     const endDate = new Date(dateObj);
@@ -149,114 +236,136 @@ export default function BookingForm() {
       Alert.alert("เกินช่วงที่กำหนด", "จองล่วงหน้าได้ไม่เกิน 7 วัน");
       return;
     }
+    if (bookedSlots.has(slot.id)) {
+      Alert.alert("สลอตไม่ว่าง", "ช่วงเวลานี้มีคนจองแล้ว");
+      return;
+    }
 
     try {
       await addDoc(collection(db, "bookings"), {
         userId: uid,
-        roomId: room, // ถ้ามี roomId จริงในฐาน ให้เปลี่ยนจากรหัสห้องเป็น id
-        slotId: slot.id, // "S1"..."S4"
+        roomId: roomId || null,
+        roomName,
+        roomCode,
+        capacityMin,
+        capacityMax,
+        slotId: slot.id,
         slotStart: Timestamp.fromDate(startDate),
         slotEnd: Timestamp.fromDate(endDate),
-        name,
-        people: Number(number),
         accessories,
         status: "pending",
         createdAt: serverTimestamp(),
       });
-
-      Alert.alert("จองสำเร็จ", `${room} • ${formatDate(dateObj)} • ${slot.label}`);
-      // รีเซ็ตบางส่วนถ้าต้องการ
-      // setSlot(null);
+      Alert.alert("จองสำเร็จ", `${roomName} (${roomCode}) • ${formatDate(dateObj)} • ${slot.label}`);
+      router.back();
     } catch (e) {
       console.error("create booking error:", e);
       Alert.alert("จองไม่สำเร็จ", "ลองใหม่อีกครั้งหรือตรวจสิทธิ์ใน Firestore Rules");
     }
   };
 
+  // เลือกอุปกรณ์แบบจำกัดสูงสุด 3 ชิ้น
+  const toggleAccessory = (item) => {
+    setAccessories((prev) => {
+      if (prev.includes(item)) return prev.filter((x) => x !== item);
+      if (prev.length >= 3) {
+        Alert.alert("เลือกได้สูงสุด 3", "คุณเลือกอุปกรณ์ได้สูงสุด 3 รายการ");
+        return prev;
+      }
+      return [...prev, item];
+    });
+  };
+
   return (
     <Provider>
-      {/* Header */}
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => {}}>
-            <Ionicons name="arrow-back" size={26} color="#fff" />
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color={COLOR.white} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Booking Form</Text>
 
           <View style={styles.rightButtons}>
-            <TouchableOpacity style={{ marginRight: 16 }}>
-              <Ionicons name="notifications-outline" size={24} color="#fff" />
+            <TouchableOpacity style={{ marginRight: 14 }}>
+              <Ionicons name="notifications-outline" size={18} color={COLOR.white} />
             </TouchableOpacity>
-            <TouchableOpacity>
-              <View style={styles.profileDot} />
-            </TouchableOpacity>
+            <View style={styles.profileDot} />
           </View>
         </View>
       </View>
 
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        {/* Name */}
-        <TextInput label="Name" value={name} onChangeText={setName} style={styles.input} mode="outlined" />
+        <TextInput
+          label="Name"
+          value={roomName}
+          mode="outlined"
+          editable={false}
+          style={styles.input}
+          outlineColor={inputColors(!!roomName).outlineColor}
+          activeOutlineColor={inputColors(!!roomName).activeOutlineColor}
+          textColor={inputColors(!!roomName).textColor}
+        />
 
-        {/* Room */}
         <TextInput
           label="Room"
-          value={room}
-          onChangeText={setRoom}
-          style={styles.input}
+          value={roomCode}
           mode="outlined"
-          right={<TextInput.Icon icon="chevron-down" />}
+          editable={false}
+          style={styles.input}
+          outlineColor={inputColors(!!roomCode).outlineColor}
+          activeOutlineColor={inputColors(!!roomCode).activeOutlineColor}
+          textColor={inputColors(!!roomCode).textColor}
         />
 
-        {/* Number */}
         <TextInput
           label="Number"
-          placeholder="Number of people"
-          value={number}
-          onChangeText={(t) => /^\d*$/.test(t) && setNumber(t)}
-          style={styles.input}
+          value={capacityDisplay}
           mode="outlined"
-          keyboardType="numeric"
+          editable={false}
+          style={styles.input}
+          outlineColor={inputColors(!!capacityDisplay).outlineColor}
+          activeOutlineColor={inputColors(!!capacityDisplay).activeOutlineColor}
+          textColor={inputColors(!!capacityDisplay).textColor}
         />
 
-        {/* Date */}
         <Pressable onPress={() => setShowDate(true)}>
           <TextInput
             label="Date"
             value={formatDate(dateObj)}
-            style={[styles.input, styles.dateField]}
             mode="outlined"
             editable={false}
-            right={<TextInput.Icon icon="calendar" onPress={() => setShowDate(true)} forceTextInputFocus={false} />}
+            style={styles.input}
+            outlineColor={inputColors(true).outlineColor}
+            activeOutlineColor={inputColors(true).activeOutlineColor}
+            textColor={COLOR.text}
+            right={<TextInput.Icon icon="chevron-down" onPress={() => setShowDate(true)} color={COLOR.text} />}
           />
         </Pressable>
 
-        {/* Modal ปฏิทิน */}
         <Portal>
-          <Modal
-            visible={showDate}
-            onDismiss={() => setShowDate(false)}
-            contentContainerStyle={{ margin: 16, backgroundColor: "white", borderRadius: 16, padding: 6 }}
-          >
+          <Modal visible={showDate} onDismiss={() => setShowDate(false)} contentContainerStyle={styles.modalBox}>
             <Calendar
               initialDate={toYMD(dateObj)}
-              onDayPress={(day) => {
-                handleCalendarPick(day);
-              }}
-              markedDates={{
-                [toYMD(dateObj)]: { selected: true, disableTouchEvent: true, selectedDotColor: "orange" },
-              }}
+              onDayPress={onPickCalendar}
+              markedDates={{ [toYMD(dateObj)]: { selected: true, disableTouchEvent: true } }}
               enableSwipeMonths
+              theme={{
+                selectedDayBackgroundColor: COLOR.primary,
+                todayTextColor: COLOR.primary,
+                arrowColor: COLOR.primary,
+              }}
             />
             <View style={{ height: 8 }} />
-            <Button mode="text" onPress={() => setShowDate(false)}>ปิด</Button>
+            <Button mode="text" onPress={() => setShowDate(false)} textColor={COLOR.primary}>
+              Close
+            </Button>
           </Modal>
         </Portal>
 
-        {/* Time Slots (2 คอลัมน์เหมือนภาพ) */}
+        {/* Time Slots */}
         <View style={styles.slotGrid}>
-          {SLOT_DEFS.map((s) => (
+          {slots.map((s) => (
             <SlotButton
               key={s.id}
               label={s.label}
@@ -273,16 +382,19 @@ export default function BookingForm() {
             label="Accessories"
             placeholder="Choose accessories"
             value={accessories.join(", ")}
-            style={styles.input}
             mode="outlined"
             editable={false}
-            right={<TextInput.Icon icon="chevron-down" onPress={() => setAccModalVisible(true)} />}
+            style={styles.input}
+            outlineColor={COLOR.border}
+            activeOutlineColor={COLOR.primary}
+            textColor={accessories.length ? COLOR.text : undefined}
+            right={<TextInput.Icon icon="chevron-down" onPress={() => setAccModalVisible(true)} color={COLOR.text} />}
           />
         </Pressable>
 
         <View style={styles.chipsWrap}>
           {accessories.map((acc) => (
-            <Chip key={acc} onClose={() => setAccessories((p) => p.filter((x) => x !== acc))} style={styles.chip}>
+            <Chip key={acc} onClose={() => setAccessories((p) => p.filter((x) => x !== acc))} style={styles.chip} textStyle={{ color: COLOR.text }}>
               {acc}
             </Chip>
           ))}
@@ -291,84 +403,138 @@ export default function BookingForm() {
         <Portal>
           <Modal visible={accModalVisible} onDismiss={() => setAccModalVisible(false)} contentContainerStyle={styles.modalBox}>
             <List.Section>
-              <List.Subheader>เลือกอุปกรณ์ (เลือกได้หลายอย่าง)</List.Subheader>
-              {ACCESSORY_OPTIONS.map((item) => (
-                <List.Item
-                  key={item}
-                  title={item}
-                  onPress={() =>
-                    setAccessories((prev) =>
-                      prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]
-                    )
-                  }
-                  right={() => <Checkbox status={accessories.includes(item) ? "checked" : "unchecked"} />}
-                />
-              ))}
+              <List.Subheader style={{ color: COLOR.text }}>
+                เลือกอุปกรณ์ (เลือกได้หลายอย่าง สูงสุด 3)
+              </List.Subheader>
+
+              {ACCESSORY_OPTIONS.map((item) => {
+                const checked = accessories.includes(item);
+                return (
+                  <List.Item
+                    key={item}
+                    title={item}
+                    titleStyle={{ color: COLOR.text }}
+                    onPress={() => toggleAccessory(item)}
+                    right={() => (
+                      <Checkbox
+                        status={checked ? "checked" : "unchecked"}
+                        color={COLOR.text}
+                        uncheckedColor={COLOR.text}
+                        onPress={() => toggleAccessory(item)}
+                      />
+                    )}
+                  />
+                );
+              })}
             </List.Section>
 
             <View style={styles.modalButtons}>
-              <Button mode="text" onPress={() => setAccessories([])}>ล้างทั้งหมด</Button>
-              <Button mode="contained" onPress={() => setAccModalVisible(false)}>เสร็จสิ้น</Button>
+              <Button mode="text" onPress={() => setAccessories([])} textColor={COLOR.text}>
+                Clear
+              </Button>
+              <Button mode="contained" onPress={() => setAccModalVisible(false)} buttonColor={COLOR.primary} textColor={COLOR.white}>
+                Done
+              </Button>
             </View>
           </Modal>
         </Portal>
 
-        {/* ปุ่มล่าง */}
-        <View style={styles.buttonRow}>
-          <Button mode="outlined" style={styles.cancelButton} onPress={() => {}}>Cancel</Button>
-          <Button mode="contained" style={styles.confirmButton} onPress={onConfirm}>Confirm</Button>
+        {/* Bottom */}
+        <View style={styles.footerRow}>
+          <TouchableOpacity style={styles.pillCancel} onPress={() => router.back()}>
+            <Text style={styles.pillCancelText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.pillConfirm} onPress={onConfirm}>
+            <Text style={styles.pillConfirmText}>Confirm</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </Provider>
   );
 }
 
-const PRIMARY = "#6C63FF";
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  input: { marginBottom: 16 },
-  dateField: { backgroundColor: "#f7ffed", borderColor: "#d9f99d" },
+  container: { flex: 1, padding: 16, backgroundColor: COLOR.white },
 
-  // Header
   headerWrap: {
-    backgroundColor: PRIMARY,
+    backgroundColor: COLOR.primary,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 48,
+    paddingBottom: 14,
     paddingHorizontal: 16,
   },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", position: "relative" },
-  headerTitle: { position: "absolute", left: 0, right: 0, textAlign: "center", color: "#fff", fontWeight: "bold", fontSize: 20 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  headerTitle: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    color: COLOR.white,
+    fontWeight: "bold",
+    fontSize: 20,
+  },
   rightButtons: { flexDirection: "row", alignItems: "center" },
-  profileDot: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#ddd" },
+  profileDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: "#e9e9ef" },
 
-  // Slots
-  slotGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
+  input: { marginBottom: 14, backgroundColor: COLOR.white },
+
+  slotGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 4, marginBottom: 8 },
   slotBtn: {
     width: "47%",
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    backgroundColor: "#fff",
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.white,
   },
-  slotBtnDisabled: { backgroundColor: "#fafafa" },
-  slotBtnSelected: { borderColor: PRIMARY, backgroundColor: "#eef2ff" },
-  dotRow: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  slotInner: {
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  slotBtnDisabled: { backgroundColor: "#FAFAFA" },
+  slotBtnSelected: { borderColor: COLOR.primary, backgroundColor: COLOR.slotSelBg },
   dot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  slotText: { color: "#1f2937", fontWeight: "600" },
+  slotText: { color: COLOR.text, fontWeight: "600" },
 
-  // Accessories modal
   chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
   chip: { marginRight: 6, marginBottom: 6 },
-  modalBox: { marginHorizontal: 16, backgroundColor: "white", padding: 16, borderRadius: 16 },
+
+  modalBox: { marginHorizontal: 16, backgroundColor: COLOR.white, padding: 16, borderRadius: 16 },
   modalButtons: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
 
-  // Footer buttons
-  buttonRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 24 },
-  cancelButton: { flex: 1, marginRight: 10, borderColor: "#d1d5db" },
-  confirmButton: { flex: 1, marginLeft: 10, backgroundColor: PRIMARY },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  pillCancel: {
+    flex: 1,
+    marginRight: 10,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLOR.cancelBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillCancelText: { color: COLOR.text, fontSize: 16, fontWeight: "600" },
+  pillConfirm: {
+    flex: 1,
+    marginLeft: 10,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLOR.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillConfirmText: { color: COLOR.white, fontSize: 16, fontWeight: "700" },
 });

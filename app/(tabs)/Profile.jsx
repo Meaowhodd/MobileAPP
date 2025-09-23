@@ -114,13 +114,10 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
         <Text style={styles.headerText}>My Profile</Text>
         {/* ปุ่ม Logout มุมขวา */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color="#fff" />
+          <Ionicons name="log-out-outline" size={22} color="#ff0000ff" />
         </TouchableOpacity>
       </View>
 
@@ -210,7 +207,7 @@ const styles = StyleSheet.create({
   },
   headerText: { color: "white", fontSize: 22, fontWeight: "bold" },
   backButton: { position: "absolute", left: 16, top: 50 },
-  logoutBtn: { position: "absolute", right: 16, top: 50 },
+  logoutBtn: { position: "absolute", right: 16, top: 50 ,},
 
   profileImageContainer: {
     width: 150,
