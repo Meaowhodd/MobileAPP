@@ -25,8 +25,8 @@ export default function HomeScreen() {
   const [rooms, setRooms] = useState([]);
   const [favIds, setFavIds] = useState(new Set());
   const [query, setQuery] = useState("");
+  const [avatar, setAvatar] = useState(null);
 
-  // rooms realtime
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "rooms"),
@@ -36,7 +36,6 @@ export default function HomeScreen() {
     return unsub;
   }, []);
 
-  // favorites realtime (per-user)
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -46,16 +45,28 @@ export default function HomeScreen() {
       (err) => console.error("favorites onSnapshot error:", err)
     );
     return unsub;
-  }, [auth.currentUser?.uid]);
+  }, []);
 
-  // stats
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const unsub = onSnapshot(
+      doc(db, "users", uid),
+      (snap) => {
+        const url = snap.exists() ? snap.data()?.photoUrl : null;
+        setAvatar(url || auth.currentUser?.photoURL || null);
+      },
+      (err) => console.error("user avatar onSnapshot error:", err)
+    );
+    return unsub;
+  }, []);
+
   const stats = useMemo(() => {
     const all = rooms.length;
     const available = rooms.filter((r) => r.availableToday).length;
     return { available, all };
   }, [rooms]);
 
-  // filter + sort (liked first)
   const visibleRooms = useMemo(() => {
     const q = query.trim().toLowerCase();
     const withLiked = rooms.map((r) => ({ ...r, liked: favIds.has(r.id) }));
@@ -68,7 +79,6 @@ export default function HomeScreen() {
     });
   }, [rooms, favIds, query]);
 
-  // toggle favorite at /favorites/{uid}/rooms/{roomId}
   const toggleLike = async (roomId, isLiked) => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -88,7 +98,7 @@ export default function HomeScreen() {
       onPress={() =>
         router.push({
           pathname: "/screens/RoomDetail",
-          params: { ...item }, // ส่งทั้งหมดไปหน้า detail
+          params: { ...item },
         })
       }
     >
@@ -155,15 +165,23 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.push({ pathname: "/(tabs)/Profile" })}>
-            <Image source={require("../../assets/images/profile.jpg")} style={styles.avatar} />
+            <Image
+              source={
+                avatar
+                  ? { uri: avatar }
+                  : require("../../assets/images/profile.jpg")
+              }
+              style={styles.avatar}
+            />
           </TouchableOpacity>
         </View>
+
         <Text style={styles.headerTitle}>Meeting Rooms</Text>
-        <View className="searchWrap" style={styles.searchWrap}>
+
+        <View style={styles.searchWrap}>
           <Ionicons name="search" size={18} color="#6b7280" style={{ marginRight: 6 }} />
           <TextInput
             style={styles.searchInput}
@@ -175,7 +193,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Stats */}
       <View style={styles.statsRow}>
         <StatCard title="Room available today" value={String(stats.available)} />
         <StatCard title="All rooms" value={String(stats.all)} />
@@ -188,7 +205,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* List */}
       <FlatList
         data={visibleRooms}
         keyExtractor={(item) => item.id}
