@@ -85,7 +85,7 @@ export default function HomeScreen() {
     });
   }, [rooms, favIds, query]);
 
-  // toggle favorite at /favorites/{uid}/rooms/{roomId}
+  // toggle favorite
   const toggleLike = async (roomId, isLiked) => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -105,7 +105,7 @@ export default function HomeScreen() {
       onPress={() =>
         router.push({
           pathname: "/screens/RoomDetail",
-          params: { ...item }, // ส่งทั้งหมดไปหน้า detail
+          params: { ...item },
         })
       }
     >
@@ -159,8 +159,8 @@ export default function HomeScreen() {
                   roomId: item.id,
                   roomName: item.name,
                   roomCode: item.code,
-                  people:
-                    item.capacityMin ? String(item.capacityMin) : "2",
+                  capacityMin: item.capacityMin ?? "",
+                  capacityMax: item.capacityMax ?? "",
                 },
               });
             }}

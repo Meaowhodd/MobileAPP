@@ -88,7 +88,7 @@ export default function RoomDetail() {
               <Text style={styles.title} numberOfLines={1}>
                 {params.roomName || params.name || "Room"}
               </Text>
-                <Text style={styles.infoText}>Capacity: {capacityText}</Text>
+              <Text style={styles.infoText}>Capacity: {capacityText}</Text>
             </View>
 
             <View style={{ alignItems: "flex-end" }}>
@@ -129,11 +129,14 @@ export default function RoomDetail() {
             activeOpacity={0.9}
             onPress={() =>
               router.push({
-                pathname: "/screens/Booking",
+                pathname: "/screens/Booking", // ใช้หน้า Booking ตามที่คุณระบุ
                 params: {
-                  roomId: String(params.roomId || ""),
+                  // ✅ ส่งครบทั้ง 5 ค่า
+                  roomId: roomId,
                   roomName: String(params.roomName || params.name || ""),
                   roomCode: String(params.roomCode || params.code || ""),
+                  capacityMin: params.capacityMin ?? "",
+                  capacityMax: params.capacityMax ?? "",
                 },
               })
             }

@@ -34,7 +34,6 @@ import { auth, db } from "../../firebaseConfig";
 
 import {
   createBookingWithLimit,
-  subscribeUserActiveApprovedCount,
 } from "../services/bookings";
 
 const COLOR = {
@@ -46,11 +45,11 @@ const COLOR = {
   slotSelBg: "#F3F0FF",
   green: "#22C55E",
   red: "#EF4444",
+  orange: "#F59E0B",
   white: "#FFFFFF",
   grayDot: "#9CA3AF",
 };
 
-// slots base
 const BASE_SLOTS = [
   { id: "S1", label: "08.00-10.00", start: 8, end: 10, available: true, dotColor: COLOR.green },
   { id: "S2", label: "10.00-12.00", start: 10, end: 12, available: true, dotColor: COLOR.green },
@@ -58,7 +57,9 @@ const BASE_SLOTS = [
   { id: "S4", label: "15.00-17.00", start: 15, end: 17, available: true, dotColor: COLOR.green },
 ];
 
+// เลือกอุปกรณ์ได้สูงสุด 3 อย่าง/การจอง
 const ACCESSORY_OPTIONS = ["ทีวี", "โปรเจกเตอร์", "ไมค์", "ลำโพง", "ไวท์บอร์ด", "สาย HDMI"];
+const MAX_ACCESSORIES = 3;
 
 const inputColors = (hasValue) => ({
   outlineColor: hasValue ? COLOR.text : COLOR.border,
@@ -119,15 +120,12 @@ export default function BookingForm() {
   const [accModalVisible, setAccModalVisible] = useState(false);
 
   const userId = auth.currentUser?.uid || null;
-  const [activeApprovedCount, setActiveApprovedCount] = useState(0);
-  const reachedLimit = activeApprovedCount >= 2;
 
-  useEffect(() => {
-    if (!userId) return;
-    const unsub = subscribeUserActiveApprovedCount(userId, setActiveApprovedCount);
-    return () => unsub && unsub();
-  }, [userId]);
+  // ▼ นับรวม approved + in_use + pending ที่ยัง active (slotEnd >= now)
+  const [activeCount, setActiveCount] = useState(0);
+  const reachedLimit = activeCount >= 2;
 
+  // --- ดึงพารามิเตอร์ห้อง ---
   useEffect(() => {
     if (params?.roomId) setRoomId(String(params.roomId));
     if (params?.roomName) setRoomName(String(params.roomName));
@@ -136,6 +134,7 @@ export default function BookingForm() {
     if (params?.capacityMax) setCapacityMax(Number(params.capacityMax));
   }, [params]);
 
+  // --- sync room doc ---
   useEffect(() => {
     if (!roomId) return;
     const ref = doc(db, "rooms", roomId);
@@ -153,6 +152,24 @@ export default function BookingForm() {
     );
     return unsub;
   }, [roomId]);
+
+  // --- subscribe: active bookings ของผู้ใช้ (รวม pending) ---
+  useEffect(() => {
+    if (!userId) return;
+    const nowTs = Timestamp.fromDate(new Date());
+    const qMine = query(
+      collection(db, "bookings"),
+      where("userId", "==", userId),
+      where("status", "in", ["approved", "in_use", "pending"]),
+      where("slotEnd", ">=", nowTs) // ยังไม่หมดเวลา
+    );
+    const unsub = onSnapshot(
+      qMine,
+      (snap) => setActiveCount(snap.size || 0),
+      (err) => console.error("user active bookings onSnapshot:", err)
+    );
+    return () => unsub();
+  }, [userId]);
 
   const formatDate = (d) =>
     d.toLocaleDateString("th-TH", { day: "2-digit", month: "long", year: "numeric" });
@@ -182,7 +199,7 @@ export default function BookingForm() {
     return String(capacityMax);
   }, [capacityMin, capacityMax]);
 
-  // อัปเดตสถานะว่าง/ไม่ว่าง และแปลง “ผ่านมาแล้ว” เป็นสีเทา + disabled
+  // อัปเดตสถานะว่าง/ไม่ว่าง + past/gray + pending/orange
   useEffect(() => {
     if (!roomId || !dateObj) return;
 
@@ -190,7 +207,7 @@ export default function BookingForm() {
     const qBusy = query(
       collection(db, "bookings"),
       where("roomId", "==", roomId),
-      where("status", "in", ["approved", "in_use"]),
+      where("status", "in", ["approved", "in_use", "pending"]),
       where("slotStart", ">=", startTs),
       where("slotStart", "<=", endTs)
     );
@@ -199,9 +216,12 @@ export default function BookingForm() {
       qBusy,
       (snap) => {
         const busy = new Set();
+        const pendings = new Set();
         snap.forEach((d) => {
           const data = d.data?.() || d.data();
-          if (data?.slotId) busy.add(data.slotId);
+          if (!data?.slotId) return;
+          if (data.status === "pending") pendings.add(data.slotId);
+          else busy.add(data.slotId);
         });
 
         const now = new Date();
@@ -213,15 +233,20 @@ export default function BookingForm() {
 
         const next = BASE_SLOTS.map((s) => {
           let isPast = false;
-          if (isPastDay) {
-            isPast = true;
-          } else if (isSameDay) {
-            // ถ้าวันนี้ และเวลาปัจจุบัน >= ชั่วโมงสิ้นสุดของสลอต → ผ่านแล้ว
+          if (isPastDay) isPast = true;
+          else if (isSameDay) {
             isPast = now.getHours() >= s.end || (now.getHours() === s.end && now.getMinutes() > 0);
           }
+
+          const isPending = pendings.has(s.id);
           const isBusy = busy.has(s.id);
-          const available = !isBusy && !isPast;
-          const dotColor = isPast ? COLOR.grayDot : isBusy ? COLOR.red : COLOR.green;
+          const available = !(isPast || isBusy || isPending);
+
+          let dotColor = COLOR.green;
+          if (isPast) dotColor = COLOR.grayDot;
+          else if (isBusy) dotColor = COLOR.red;
+          else if (isPending) dotColor = COLOR.orange;
+
           return { ...s, available, dotColor };
         });
 
@@ -241,6 +266,12 @@ export default function BookingForm() {
     const uid = auth.currentUser?.uid;
     if (!uid) {
       Alert.alert("ยังไม่ได้เข้าสู่ระบบ", "โปรดเข้าสู่ระบบก่อนทำรายการ");
+      return;
+    }
+
+    // ป้องกันอีกชั้นใน client: ถ้าเต็มโควต้าแล้วไม่ให้กด (กัน race เผื่อ UI lag)
+    if (reachedLimit) {
+      Alert.alert("เต็มโควต้า", "คุณมีการจองที่รอดำเนินการหรืออนุมัติครบ 2 รายการแล้ว");
       return;
     }
 
@@ -277,6 +308,7 @@ export default function BookingForm() {
         status: "pending",
       };
 
+      // ✅ ควรอัปเดต createBookingWithLimit ฝั่ง service ให้รวม pending ด้วย
       await createBookingWithLimit(payload);
 
       Alert.alert(
@@ -408,11 +440,11 @@ export default function BookingForm() {
           ))}
         </View>
 
-        {/* Accessories */}
+        {/* Accessories (max 3) */}
         <Pressable onPress={() => setAccModalVisible(true)}>
           <TextInput
             label="Accessories"
-            placeholder="Choose accessories"
+            placeholder="Choose up to 3"
             value={accessories.join(", ")}
             mode="outlined"
             editable={false}
@@ -451,26 +483,37 @@ export default function BookingForm() {
           >
             <List.Section>
               <List.Subheader style={{ color: COLOR.text }}>
-                เลือกอุปกรณ์ (เลือกได้หลายอย่าง)
+                เลือกอุปกรณ์ (สูงสุด {MAX_ACCESSORIES}) — {accessories.length}/{MAX_ACCESSORIES}
               </List.Subheader>
 
               {ACCESSORY_OPTIONS.map((item) => {
                 const checked = accessories.includes(item);
+                const reached = accessories.length >= MAX_ACCESSORIES;
+                const disabled = !checked && reached; // ถ้าเต็มแล้ว ห้ามเลือกเพิ่ม (แต่ยังเอาออกได้)
                 return (
                   <List.Item
                     key={item}
                     title={item}
-                    titleStyle={{ color: COLOR.text }}
+                    titleStyle={{ color: disabled ? "#9CA3AF" : COLOR.text }}
+                    disabled={disabled}
                     onPress={() =>
-                      setAccessories((prev) =>
-                        checked ? prev.filter((x) => x !== item) : [...prev, item]
-                      )
+                      setAccessories((prev) => {
+                        const isChecked = prev.includes(item);
+                        if (isChecked) {
+                          return prev.filter((x) => x !== item);
+                        }
+                        if (prev.length >= MAX_ACCESSORIES) {
+                          Alert.alert("เลือกอุปกรณ์ได้สูงสุด 3 อย่าง", "โปรดเอาอุปกรณ์บางอย่างออกก่อน");
+                          return prev;
+                        }
+                        return [...prev, item];
+                      })
                     }
                     right={() => (
                       <Checkbox
                         status={checked ? "checked" : "unchecked"}
-                        color={COLOR.text}
-                        uncheckedColor={COLOR.text}
+                        color={disabled ? "#9CA3AF" : COLOR.text}
+                        uncheckedColor={disabled ? "#9CA3AF" : COLOR.text}
                       />
                     )}
                   />
@@ -494,12 +537,12 @@ export default function BookingForm() {
           </Modal>
         </Portal>
 
-        {/* โควต้าแจ้งเตือน */}
-        <Text style={{ color: reachedLimit ? COLOR.red : COLOR.muted, marginTop: 6, marginBottom: 8 }}>
-          {reachedLimit
-            ? "คุณมีการจองที่ได้รับอนุมัติครบ 2 ห้องแล้ว ไม่สามารถจองเพิ่มได้"
-            : `คุณใช้โควต้าแล้ว ${activeApprovedCount}/2`}
-        </Text>
+        {/* แสดงเฉพาะตอนเต็มโควต้า */}
+        {reachedLimit && (
+          <Text style={{ color: COLOR.red, marginTop: 6, marginBottom: 8 }}>
+            คุณมีการจองที่ <Text style={{ fontWeight: "700" }}>รอดำเนินการหรืออนุมัติ</Text> ครบ 2 รายการแล้ว ไม่สามารถจองเพิ่มได้
+          </Text>
+        )}
 
         {/* Bottom */}
         <View style={styles.footerRow}>
@@ -507,7 +550,7 @@ export default function BookingForm() {
             <Text style={styles.pillCancelText}>Cancel</Text>
           </TouchableOpacity>
 
-        <TouchableOpacity
+          <TouchableOpacity
             style={[
               styles.pillConfirm,
               (reachedLimit || !slot) && { opacity: 0.5 },
