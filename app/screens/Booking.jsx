@@ -1,13 +1,11 @@
-// app/screens/BookingForm.jsx
+// app/screens/BookingForm.js
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import {
-  addDoc,
   collection,
   doc,
   onSnapshot,
   query,
-  serverTimestamp,
   Timestamp,
   where,
 } from "firebase/firestore";
@@ -34,6 +32,11 @@ import {
 } from "react-native-paper";
 import { auth, db } from "../../firebaseConfig";
 
+import {
+  createBookingWithLimit,
+  subscribeUserActiveApprovedCount,
+} from "../services/bookings";
+
 const COLOR = {
   primary: "#6A5AE0",
   border: "#D7D9E0",
@@ -44,13 +47,15 @@ const COLOR = {
   green: "#22C55E",
   red: "#EF4444",
   white: "#FFFFFF",
+  grayDot: "#9CA3AF",
 };
 
+// slots base
 const BASE_SLOTS = [
-  { id: "S1", label: "08.00-10.00", start: 8, end: 10 },
-  { id: "S2", label: "10.00-12.00", start: 10, end: 12 },
-  { id: "S3", label: "13.00-15.00", start: 13, end: 15 },
-  { id: "S4", label: "15.00-17.00", start: 15, end: 17 },
+  { id: "S1", label: "08.00-10.00", start: 8, end: 10, available: true, dotColor: COLOR.green },
+  { id: "S2", label: "10.00-12.00", start: 10, end: 12, available: true, dotColor: COLOR.green },
+  { id: "S3", label: "13.00-15.00", start: 13, end: 15, available: true, dotColor: COLOR.green },
+  { id: "S4", label: "15.00-17.00", start: 15, end: 17, available: true, dotColor: COLOR.green },
 ];
 
 const ACCESSORY_OPTIONS = ["ทีวี", "โปรเจกเตอร์", "ไมค์", "ลำโพง", "ไวท์บอร์ด", "สาย HDMI"];
@@ -61,7 +66,7 @@ const inputColors = (hasValue) => ({
   textColor: COLOR.text,
 });
 
-function SlotButton({ label, available, selected, onPress }) {
+function SlotButton({ label, available, selected, onPress, dotColor }) {
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -74,12 +79,7 @@ function SlotButton({ label, available, selected, onPress }) {
       ]}
     >
       <View style={styles.slotInner}>
-        <View
-          style={[
-            styles.dot,
-            { backgroundColor: available ? COLOR.green : COLOR.red },
-          ]}
-        />
+        <View style={[styles.dot, { backgroundColor: dotColor }]} />
         <Text
           style={[
             styles.slotText,
@@ -94,6 +94,12 @@ function SlotButton({ label, available, selected, onPress }) {
   );
 }
 
+const dayRange = (d) => {
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  return { startTs: Timestamp.fromDate(start), endTs: Timestamp.fromDate(end) };
+};
+
 export default function BookingForm() {
   const params = useLocalSearchParams();
 
@@ -106,13 +112,22 @@ export default function BookingForm() {
   const [dateObj, setDateObj] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
 
-  const [bookedSlots, setBookedSlots] = useState(new Set()); // <-- สลอตที่ถูกจองของวันนั้นๆ
+  const [slots, setSlots] = useState(BASE_SLOTS);
   const [slot, setSlot] = useState(null);
 
   const [accessories, setAccessories] = useState([]);
   const [accModalVisible, setAccModalVisible] = useState(false);
 
-  // รับค่าจาก RoomDetail
+  const userId = auth.currentUser?.uid || null;
+  const [activeApprovedCount, setActiveApprovedCount] = useState(0);
+  const reachedLimit = activeApprovedCount >= 2;
+
+  useEffect(() => {
+    if (!userId) return;
+    const unsub = subscribeUserActiveApprovedCount(userId, setActiveApprovedCount);
+    return () => unsub && unsub();
+  }, [userId]);
+
   useEffect(() => {
     if (params?.roomId) setRoomId(String(params.roomId));
     if (params?.roomName) setRoomName(String(params.roomName));
@@ -121,7 +136,6 @@ export default function BookingForm() {
     if (params?.capacityMax) setCapacityMax(Number(params.capacityMax));
   }, [params]);
 
-  // เติมข้อมูลห้องจาก Firestore (เผื่อกดเข้ามาจากที่อื่น)
   useEffect(() => {
     if (!roomId) return;
     const ref = doc(db, "rooms", roomId);
@@ -139,46 +153,6 @@ export default function BookingForm() {
     );
     return unsub;
   }, [roomId]);
-
-  // อ่านการจองของ "ห้องนี้" ใน "วันที่เลือก" เพื่อบอกว่าสลอตไหนไม่ว่าง
-  useEffect(() => {
-    if (!roomId || !dateObj) return;
-
-    const start = new Date(dateObj);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(dateObj);
-    end.setHours(23, 59, 59, 999);
-
-    const q = query(
-      collection(db, "bookings"),
-      where("roomId", "==", roomId),
-      where("slotStart", ">=", Timestamp.fromDate(start)),
-      where("slotStart", "<=", Timestamp.fromDate(end))
-    );
-
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const taken = new Set();
-        snap.docs.forEach((d) => {
-          const data = d.data();
-          if (data?.slotId) taken.add(String(data.slotId));
-        });
-        setBookedSlots(taken);
-        // ถ้าสลอตที่เลือกถูกจองระหว่างรอ realtime -> เคลียร์
-        setSlot((s) => (s && taken.has(s.id) ? null : s));
-      },
-      (err) => console.error("bookings onSnapshot:", err)
-    );
-
-    return unsub;
-  }, [roomId, dateObj]);
-
-  // slot list พร้อม availability จาก Firestore
-  const slots = useMemo(
-    () => BASE_SLOTS.map((s) => ({ ...s, available: !bookedSlots.has(s.id) })),
-    [bookedSlots]
-  );
 
   const formatDate = (d) =>
     d.toLocaleDateString("th-TH", { day: "2-digit", month: "long", year: "numeric" });
@@ -208,6 +182,57 @@ export default function BookingForm() {
     return String(capacityMax);
   }, [capacityMin, capacityMax]);
 
+  // อัปเดตสถานะว่าง/ไม่ว่าง และแปลง “ผ่านมาแล้ว” เป็นสีเทา + disabled
+  useEffect(() => {
+    if (!roomId || !dateObj) return;
+
+    const { startTs, endTs } = dayRange(dateObj);
+    const qBusy = query(
+      collection(db, "bookings"),
+      where("roomId", "==", roomId),
+      where("status", "in", ["approved", "in_use"]),
+      where("slotStart", ">=", startTs),
+      where("slotStart", "<=", endTs)
+    );
+
+    const unsub = onSnapshot(
+      qBusy,
+      (snap) => {
+        const busy = new Set();
+        snap.forEach((d) => {
+          const data = d.data?.() || d.data();
+          if (data?.slotId) busy.add(data.slotId);
+        });
+
+        const now = new Date();
+        const isSameDay =
+          now.getFullYear() === dateObj.getFullYear() &&
+          now.getMonth() === dateObj.getMonth() &&
+          now.getDate() === dateObj.getDate();
+        const isPastDay = new Date(dateObj.toDateString()) < new Date(now.toDateString());
+
+        const next = BASE_SLOTS.map((s) => {
+          let isPast = false;
+          if (isPastDay) {
+            isPast = true;
+          } else if (isSameDay) {
+            // ถ้าวันนี้ และเวลาปัจจุบัน >= ชั่วโมงสิ้นสุดของสลอต → ผ่านแล้ว
+            isPast = now.getHours() >= s.end || (now.getHours() === s.end && now.getMinutes() > 0);
+          }
+          const isBusy = busy.has(s.id);
+          const available = !isBusy && !isPast;
+          const dotColor = isPast ? COLOR.grayDot : isBusy ? COLOR.red : COLOR.green;
+          return { ...s, available, dotColor };
+        });
+
+        setSlots(next);
+        if (slot && !next.find((x) => x.id === slot.id && x.available)) setSlot(null);
+      },
+      (err) => console.error("busy slots onSnapshot:", err)
+    );
+    return () => unsub();
+  }, [roomId, dateObj, slot]);
+
   const onConfirm = async () => {
     if (!roomName || !roomCode || capacityMin == null || capacityMax == null || !slot) {
       Alert.alert("กรอกไม่ครบ", "ข้อมูลห้อง/ความจุ/ช่วงเวลายังไม่ครบ");
@@ -236,13 +261,9 @@ export default function BookingForm() {
       Alert.alert("เกินช่วงที่กำหนด", "จองล่วงหน้าได้ไม่เกิน 7 วัน");
       return;
     }
-    if (bookedSlots.has(slot.id)) {
-      Alert.alert("สลอตไม่ว่าง", "ช่วงเวลานี้มีคนจองแล้ว");
-      return;
-    }
 
     try {
-      await addDoc(collection(db, "bookings"), {
+      const payload = {
         userId: uid,
         roomId: roomId || null,
         roomName,
@@ -254,30 +275,24 @@ export default function BookingForm() {
         slotEnd: Timestamp.fromDate(endDate),
         accessories,
         status: "pending",
-        createdAt: serverTimestamp(),
-      });
-      Alert.alert("จองสำเร็จ", `${roomName} (${roomCode}) • ${formatDate(dateObj)} • ${slot.label}`);
+      };
+
+      await createBookingWithLimit(payload);
+
+      Alert.alert(
+        "จองสำเร็จ",
+        `${roomName} (${roomCode}) • ${formatDate(dateObj)} • ${slot.label}\nรอแอดมินอนุมัติ`
+      );
       router.back();
     } catch (e) {
       console.error("create booking error:", e);
-      Alert.alert("จองไม่สำเร็จ", "ลองใหม่อีกครั้งหรือตรวจสิทธิ์ใน Firestore Rules");
+      Alert.alert("จองไม่สำเร็จ", e?.message || "ลองใหม่อีกครั้ง");
     }
-  };
-
-  // เลือกอุปกรณ์แบบจำกัดสูงสุด 3 ชิ้น
-  const toggleAccessory = (item) => {
-    setAccessories((prev) => {
-      if (prev.includes(item)) return prev.filter((x) => x !== item);
-      if (prev.length >= 3) {
-        Alert.alert("เลือกได้สูงสุด 3", "คุณเลือกอุปกรณ์ได้สูงสุด 3 รายการ");
-        return prev;
-      }
-      return [...prev, item];
-    });
   };
 
   return (
     <Provider>
+      {/* Header */}
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -296,6 +311,7 @@ export default function BookingForm() {
       </View>
 
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        {/* Name */}
         <TextInput
           label="Name"
           value={roomName}
@@ -307,6 +323,7 @@ export default function BookingForm() {
           textColor={inputColors(!!roomName).textColor}
         />
 
+        {/* Room */}
         <TextInput
           label="Room"
           value={roomCode}
@@ -318,6 +335,7 @@ export default function BookingForm() {
           textColor={inputColors(!!roomCode).textColor}
         />
 
+        {/* Number */}
         <TextInput
           label="Number"
           value={capacityDisplay}
@@ -329,6 +347,7 @@ export default function BookingForm() {
           textColor={inputColors(!!capacityDisplay).textColor}
         />
 
+        {/* Date */}
         <Pressable onPress={() => setShowDate(true)}>
           <TextInput
             label="Date"
@@ -339,16 +358,28 @@ export default function BookingForm() {
             outlineColor={inputColors(true).outlineColor}
             activeOutlineColor={inputColors(true).activeOutlineColor}
             textColor={COLOR.text}
-            right={<TextInput.Icon icon="chevron-down" onPress={() => setShowDate(true)} color={COLOR.text} />}
+            right={
+              <TextInput.Icon
+                icon="chevron-down"
+                onPress={() => setShowDate(true)}
+                color={COLOR.text}
+              />
+            }
           />
         </Pressable>
 
         <Portal>
-          <Modal visible={showDate} onDismiss={() => setShowDate(false)} contentContainerStyle={styles.modalBox}>
+          <Modal
+            visible={showDate}
+            onDismiss={() => setShowDate(false)}
+            contentContainerStyle={styles.modalBox}
+          >
             <Calendar
               initialDate={toYMD(dateObj)}
               onDayPress={onPickCalendar}
-              markedDates={{ [toYMD(dateObj)]: { selected: true, disableTouchEvent: true } }}
+              markedDates={{
+                [toYMD(dateObj)]: { selected: true, disableTouchEvent: true },
+              }}
               enableSwipeMonths
               theme={{
                 selectedDayBackgroundColor: COLOR.primary,
@@ -363,7 +394,7 @@ export default function BookingForm() {
           </Modal>
         </Portal>
 
-        {/* Time Slots */}
+        {/* Slots */}
         <View style={styles.slotGrid}>
           {slots.map((s) => (
             <SlotButton
@@ -372,6 +403,7 @@ export default function BookingForm() {
               available={s.available}
               selected={slot?.id === s.id}
               onPress={() => chooseSlot(s)}
+              dotColor={s.dotColor}
             />
           ))}
         </View>
@@ -388,23 +420,38 @@ export default function BookingForm() {
             outlineColor={COLOR.border}
             activeOutlineColor={COLOR.primary}
             textColor={accessories.length ? COLOR.text : undefined}
-            right={<TextInput.Icon icon="chevron-down" onPress={() => setAccModalVisible(true)} color={COLOR.text} />}
+            right={
+              <TextInput.Icon
+                icon="chevron-down"
+                onPress={() => setAccModalVisible(true)}
+                color={COLOR.text}
+              />
+            }
           />
         </Pressable>
 
         <View style={styles.chipsWrap}>
           {accessories.map((acc) => (
-            <Chip key={acc} onClose={() => setAccessories((p) => p.filter((x) => x !== acc))} style={styles.chip} textStyle={{ color: COLOR.text }}>
+            <Chip
+              key={acc}
+              onClose={() => setAccessories((p) => p.filter((x) => x !== acc))}
+              style={styles.chip}
+              textStyle={{ color: COLOR.text }}
+            >
               {acc}
             </Chip>
           ))}
         </View>
 
         <Portal>
-          <Modal visible={accModalVisible} onDismiss={() => setAccModalVisible(false)} contentContainerStyle={styles.modalBox}>
+          <Modal
+            visible={accModalVisible}
+            onDismiss={() => setAccModalVisible(false)}
+            contentContainerStyle={styles.modalBox}
+          >
             <List.Section>
               <List.Subheader style={{ color: COLOR.text }}>
-                เลือกอุปกรณ์ (เลือกได้หลายอย่าง สูงสุด 3)
+                เลือกอุปกรณ์ (เลือกได้หลายอย่าง)
               </List.Subheader>
 
               {ACCESSORY_OPTIONS.map((item) => {
@@ -414,13 +461,16 @@ export default function BookingForm() {
                     key={item}
                     title={item}
                     titleStyle={{ color: COLOR.text }}
-                    onPress={() => toggleAccessory(item)}
+                    onPress={() =>
+                      setAccessories((prev) =>
+                        checked ? prev.filter((x) => x !== item) : [...prev, item]
+                      )
+                    }
                     right={() => (
                       <Checkbox
                         status={checked ? "checked" : "unchecked"}
                         color={COLOR.text}
                         uncheckedColor={COLOR.text}
-                        onPress={() => toggleAccessory(item)}
                       />
                     )}
                   />
@@ -432,12 +482,24 @@ export default function BookingForm() {
               <Button mode="text" onPress={() => setAccessories([])} textColor={COLOR.text}>
                 Clear
               </Button>
-              <Button mode="contained" onPress={() => setAccModalVisible(false)} buttonColor={COLOR.primary} textColor={COLOR.white}>
+              <Button
+                mode="contained"
+                onPress={() => setAccModalVisible(false)}
+                buttonColor={COLOR.primary}
+                textColor={COLOR.white}
+              >
                 Done
               </Button>
             </View>
           </Modal>
         </Portal>
+
+        {/* โควต้าแจ้งเตือน */}
+        <Text style={{ color: reachedLimit ? COLOR.red : COLOR.muted, marginTop: 6, marginBottom: 8 }}>
+          {reachedLimit
+            ? "คุณมีการจองที่ได้รับอนุมัติครบ 2 ห้องแล้ว ไม่สามารถจองเพิ่มได้"
+            : `คุณใช้โควต้าแล้ว ${activeApprovedCount}/2`}
+        </Text>
 
         {/* Bottom */}
         <View style={styles.footerRow}>
@@ -445,8 +507,17 @@ export default function BookingForm() {
             <Text style={styles.pillCancelText}>Cancel</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.pillConfirm} onPress={onConfirm}>
-            <Text style={styles.pillConfirmText}>Confirm</Text>
+        <TouchableOpacity
+            style={[
+              styles.pillConfirm,
+              (reachedLimit || !slot) && { opacity: 0.5 },
+            ]}
+            onPress={onConfirm}
+            disabled={reachedLimit || !slot}
+          >
+            <Text style={styles.pillConfirmText}>
+              {reachedLimit ? "เต็มโควต้าแล้ว" : "Confirm"}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
