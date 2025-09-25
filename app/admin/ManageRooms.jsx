@@ -1,53 +1,62 @@
+// app/admin/ManageRooms.jsx
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-export default function AddRoomForm() {
+import { collection, deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../firebaseConfig";
+
+const PLACEHOLDER =
+  "https://images.unsplash.com/photo-1551292831-023188e78222?w=640&q=60&auto=format&fit=crop";
+
+export default function ManageRooms() {
   const router = useRouter();
+  const [rooms, setRooms] = useState([]);
 
-  // state เก็บค่าฟอร์ม
-  const [roomName, setRoomName] = useState("");
-  const [roomCode, setRoomCode] = useState("");
-  const [capacity, setCapacity] = useState("");
-  const [floor, setFloor] = useState("");
-  const [description, setDescription] = useState("");
-  const [highlights, setHighlights] = useState("");
-  const [bestFor, setBestFor] = useState("");
-  const [atmosphere, setAtmosphere] = useState("");
+  // confirm modal
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selected, setSelected] = useState(null); // {id, name, code, image}
 
-  // state เก็บรูป
-  const [image, setImage] = useState(null);
+  useFocusEffect(
+    useCallback(() => {
+      const unsub = onSnapshot(collection(db, "rooms"), (snap) => {
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setRooms(rows);
+      });
+      return () => unsub();
+    }, [])
+  );
 
-  // ฟังก์ชันเลือกภาพ
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-    }
+  const openConfirm = (room) => {
+    setSelected(room);
+    setConfirmOpen(true);
+  };
+  const closeConfirm = () => {
+    setConfirmOpen(false);
+    setSelected(null);
   };
 
-  const handleSave = () => {
-    console.log({
-      roomName,
-      roomCode,
-      capacity,
-      floor,
-      description,
-      highlights,
-      bestFor,
-      atmosphere,
-      image, // เก็บลิงก์ภาพด้วย
-    });
-
-    router.back();
+  const applyDelete = async () => {
+    if (!selected) return;
+    try {
+      await deleteDoc(doc(db, "rooms", selected.id));
+      closeConfirm();
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "ลบไม่สำเร็จ");
+    }
   };
 
   return (
@@ -55,46 +64,87 @@ export default function AddRoomForm() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add New Room</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle}>Manage Rooms</Text>
+        <TouchableOpacity onPress={() => router.push("/admin/AddRoomForm")}>
+          <Ionicons name="add-circle-outline" size={26} color="#fff" />
+        </TouchableOpacity>
       </View>
 
+      {/* List */}
       <ScrollView contentContainerStyle={styles.body}>
-        {/* 🔹 ส่วนอัพโหลดรูป */}
-        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.roomImage} />
-          ) : (
-            <View style={styles.placeholder}>
-              <Ionicons name="camera-outline" size={40} color="#888" />
-              <Text style={{ color: "#888", marginTop: 5 }}>Add Room Image</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {rooms.length === 0 ? (
+          <Text style={styles.empty}>No rooms found.</Text>
+        ) : (
+          rooms.map((r) => {
+            const img = r.image || r.imageUrl || PLACEHOLDER;
+            return (
+              <View key={r.id} style={styles.card}>
+                <Image source={{ uri: img }} style={styles.thumb} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.roomName} numberOfLines={1}>
+                    {r.name || "-"}
+                  </Text>
+                  <Text style={styles.roomCode} numberOfLines={1}>
+                    Room Code: {r.code || "-"}
+                  </Text>
+                </View>
 
-        {/* ฟอร์ม */}
-        <TextInput style={styles.input} placeholder="Room Name" value={roomName} onChangeText={setRoomName} />
-        <TextInput style={styles.input} placeholder="Room Code (A-203)" value={roomCode} onChangeText={setRoomCode} />
-        <TextInput style={styles.input} placeholder="Capacity (เช่น 4-6 คน)" value={capacity} onChangeText={setCapacity} />
-        <TextInput style={styles.input} placeholder="Floor" value={floor} onChangeText={setFloor} />
-        <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} />
-        <TextInput style={styles.input} placeholder="Highlights" value={highlights} onChangeText={setHighlights} />
-        <TextInput style={styles.input} placeholder="Best for" value={bestFor} onChangeText={setBestFor} />
-        <TextInput style={styles.input} placeholder="Atmosphere" value={atmosphere} onChangeText={setAtmosphere} />
-
-        {/* ปุ่ม Save */}
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveText}>Save Room</Text>
-        </TouchableOpacity>
+                {/* Actions */}
+                <View style={styles.actions}>
+                  <Pressable
+                    style={[styles.iconBtn, styles.editBtn]}
+                    onPress={() => router.push({ pathname: "/admin/EditRoomForm", params: { id: r.id } })}
+                    android_ripple={{ color: "#e9e9ff", borderless: true }}
+                  >
+                    <Ionicons name="create-outline" size={20} color="#6A5AE0" />
+                  </Pressable>
+                  <Pressable
+                    style={[styles.iconBtn, styles.deleteBtn]}
+                    onPress={() => openConfirm(r)}
+                    android_ripple={{ color: "#ffe9e9", borderless: true }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })
+        )}
       </ScrollView>
+
+      {/* Confirm Delete Modal */}
+      <Modal transparent visible={confirmOpen} animationType="fade" onRequestClose={closeConfirm}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Delete this room?</Text>
+            {selected && (
+              <Text style={styles.modalSub}>
+                {`• ${selected.name || "-"}`}
+                {selected.code ? `\n• Code: ${selected.code}` : ""}
+              </Text>
+            )}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={closeConfirm}>
+                <Text style={[styles.btnText, { color: "#6A5AE0" }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, styles.btnDanger]} onPress={applyDelete}>
+                <Text style={[styles.btnText, { color: "#fff" }]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+/* ===== Styles ===== */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
+
   header: {
     backgroundColor: "#6A5AE0",
     flexDirection: "row",
@@ -104,36 +154,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 15,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "white" },
-  body: { padding: 20 },
+  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff" },
 
-  // กรอบสำหรับรูป
-  imagePicker: {
-    width: "100%",
-    height: 180,
+  body: { padding: 16, paddingBottom: 24 },
+
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#ececf5",
+    // ใช้ทั้งเงอ native และเว็บ
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  thumb: {
+    width: 64,
+    height: 64,
     borderRadius: 10,
-    backgroundColor: "#f1f1f1",
+    marginRight: 12,
+    backgroundColor: "#eee",
+  },
+  roomName: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  roomCode: { fontSize: 13, fontWeight: "600", color: "#6B7280", marginTop: 2 },
+
+  actions: { flexDirection: "row", marginLeft: 10 },
+  iconBtn: {
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  editBtn: { borderColor: "#E6E8FF", backgroundColor: "#F7F7FF" },
+  deleteBtn: { borderColor: "#FFE4E4", backgroundColor: "#FFF7F7" },
+
+  empty: { textAlign: "center", color: "#666", marginTop: 30 },
+
+  // Modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,.35)",
     justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    overflow: "hidden",
+    padding: 22,
   },
-  roomImage: { width: "100%", height: "100%", resizeMode: "cover" },
-  placeholder: { justifyContent: "center", alignItems: "center" },
-
-  input: {
-    backgroundColor: "#f1f1f1",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 14,
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 18,
   },
-  saveBtn: {
-    backgroundColor: "#6A5AE0",
-    padding: 15,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  saveText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: "#333" },
+  modalSub: { marginTop: 10, color: "#555", lineHeight: 20, whiteSpace: "pre-line" },
+  modalActions: { flexDirection: "row", justifyContent: "flex-end", marginTop: 14 },
+  btn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, marginRight: 5 },
+  btnGhost: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#6A5AE0" },
+  btnDanger: { backgroundColor: "#EF4444" },
+  btnText: { fontSize: 14, fontWeight: "700" },
 });

@@ -1,13 +1,45 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "../../firebaseConfig";
 
 export default function AdminDashboard() {
   const router = useRouter();
 
+  const [usersCount, setUsersCount] = useState(0);
+  const [roomsCount, setRoomsCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [approvedCount, setApprovedCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const unsubUsers = onSnapshot(collection(db, "users"), (s) => setUsersCount(s.size));
+      const unsubRooms = onSnapshot(collection(db, "rooms"), (s) => setRoomsCount(s.size));
+      const unsubPending = onSnapshot(
+        query(collection(db, "bookings"), where("status", "==", "pending")),
+        (s) => setPendingCount(s.size)
+      );
+      const unsubApproved = onSnapshot(
+        query(collection(db, "bookings"), where("status", "==", "approved")),
+        (s) => setApprovedCount(s.size)
+      );
+
+      return () => {
+        unsubUsers();
+        unsubRooms();
+        unsubPending();
+        unsubApproved();
+      };
+    }, [])
+  );
+
   return (
     <View style={styles.container}>
-      {/* 🔹 Header */}
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <TouchableOpacity onPress={() => router.replace("/")}>
@@ -15,32 +47,31 @@ export default function AdminDashboard() {
         </TouchableOpacity>
       </View>
 
-      {/* 🔹 เนื้อหา */}
       <ScrollView contentContainerStyle={styles.body}>
-        {/* สรุปสถิติ */}
+        {/* Stats */}
         <View style={styles.cardRow}>
           <View style={styles.card}>
-            <Text style={styles.cardNumber}>120</Text>
+            <Text style={styles.cardNumber}>{usersCount}</Text>
             <Text style={styles.cardLabel}>Users</Text>
           </View>
           <View style={styles.card}>
-            <Text style={styles.cardNumber}>12</Text>
+            <Text style={styles.cardNumber}>{roomsCount}</Text>
             <Text style={styles.cardLabel}>Rooms</Text>
           </View>
         </View>
 
         <View style={styles.cardRow}>
           <View style={styles.card}>
-            <Text style={styles.cardNumber}>8</Text>
+            <Text style={styles.cardNumber}>{pendingCount}</Text>
             <Text style={styles.cardLabel}>Pending</Text>
           </View>
           <View style={styles.card}>
-            <Text style={styles.cardNumber}>45</Text>
+            <Text style={styles.cardNumber}>{approvedCount}</Text>
             <Text style={styles.cardLabel}>Approved</Text>
           </View>
         </View>
 
-        {/* เมนูลัด Management */}
+        {/* Menu */}
         <Text style={styles.sectionTitle}>Management</Text>
         <View style={styles.menuRow}>
           <TouchableOpacity

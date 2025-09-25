@@ -327,18 +327,10 @@ export default function BookingForm() {
       {/* Header */}
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={20} color={COLOR.white} />
-          </TouchableOpacity>
-
           <Text style={styles.headerTitle}>Booking Form</Text>
-
-          <View style={styles.rightButtons}>
-            <TouchableOpacity style={{ marginRight: 14 }}>
-              <Ionicons name="notifications-outline" size={18} color={COLOR.white} />
-            </TouchableOpacity>
-            <View style={styles.profileDot} />
-          </View>
+          <TouchableOpacity style={{ position: "absolute", right: 14}} onPress={() => router.push("(tabs)/Inbox")}>
+            <Ionicons name="notifications-outline" size={22} color={COLOR.white} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -584,6 +576,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     position: "relative",
+    marginBottom: 14,
   },
   headerTitle: {
     position: "absolute",
@@ -592,10 +585,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: COLOR.white,
     fontWeight: "bold",
-    fontSize: 20,
+    fontSize: 23,
   },
   rightButtons: { flexDirection: "row", alignItems: "center" },
-  profileDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: "#e9e9ef" },
 
   input: { marginBottom: 14, backgroundColor: COLOR.white },
 
