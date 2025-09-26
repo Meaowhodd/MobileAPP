@@ -263,18 +263,6 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.push({ pathname: "/(tabs)/Profile" })}>
-            <Image
-              source={
-                avatar
-                  ? { uri: avatar }
-                  : require("../../assets/images/profile.jpg")
-              }
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
-        </View>
 
         <Text style={styles.headerTitle}>Meeting Rooms</Text>
 
@@ -343,6 +331,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     paddingBottom: 14,
+    paddingTop: 50,
   },
   headerTop: {
     flexDirection: "row",

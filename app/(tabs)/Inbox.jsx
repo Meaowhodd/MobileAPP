@@ -412,8 +412,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  topTitle: { color: "#fff", fontSize: 26, fontWeight: "bold",marginLeft: 6,marginTop: 7 },
-  topClear: { color: "red", fontWeight: "bold", fontSize: 14 ,marginTop: 9 },
+  topTitle: { color: "#fff", fontSize: 26, fontWeight: "bold",marginLeft: 6,marginTop: 40 },
+  topClear: { color: "red", fontWeight: "bold", fontSize: 14 ,marginTop: 45 },
 
   subHeader: {
     flexDirection: "row",

@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-  headerText: { color: "white", fontSize: 26, fontWeight: "bold" },
+  headerText: { color: "white", fontSize: 24, fontWeight: "bold" },
   backButton: { position: "absolute", left: 16, top: 50 },
   logoutBtn: { position: "absolute", right: 16, top: 50 ,},
 
