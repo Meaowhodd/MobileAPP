@@ -10,6 +10,7 @@ export default function Layout() {
       <Stack.Screen name="screens/Login" />
       <Stack.Screen name="screens/Register" />
 
+
       {/* Admin */}
       <Stack.Screen name="admin/AdminDashboard" />
       <Stack.Screen name="admin/ManageUsers" />

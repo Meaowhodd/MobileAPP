@@ -1,7 +1,7 @@
 // RegisterScreen.jsx
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -19,7 +19,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 
 export default function RegisterScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
   const [firstName, setFirstName] = useState("");
@@ -54,7 +54,7 @@ export default function RegisterScreen() {
       });
 
       Alert.alert("สำเร็จ", "Account created 🎉");
-      navigation.replace("Login"); // หรือเปลี่ยนเป็นเส้นทางของคุณ
+      router.push("/screens/Login"); // หรือเปลี่ยนเป็นเส้นทางของคุณ
     } catch (err) {
       console.error("register error:", err);
       let msg = "สมัครสมาชิกไม่สำเร็จ";
@@ -121,6 +121,12 @@ export default function RegisterScreen() {
       <TouchableOpacity style={styles.signupBtn} onPress={onRegister} disabled={loading}>
         {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.signupText}>Sign up</Text>}
       </TouchableOpacity>
+      <Text style={styles.loginText}>
+        If you already have an account{" "}
+        <Text style={styles.loginLink} onPress={() => router.push("/screens/Login")}>
+          Login
+        </Text>
+      </Text>
 
       {/* Divider */}
       <View style={styles.divider}>
@@ -197,6 +203,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   signupText: { color: "black", fontSize: 18, fontWeight: "bold" },
+  loginText: { color: "white", textAlign: "center", marginBottom: 20 },
+  loginLink: { color: "#FFD700", fontWeight: "bold" },
 
   // divider & socials
   divider: { flexDirection: "row", alignItems: "center", marginBottom: 20 },

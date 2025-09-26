@@ -4,14 +4,14 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
@@ -301,8 +301,10 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 15,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff" },
+  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff", marginBottom: 5 },
 
   body: { padding: 20, paddingBottom: 24 },
 

@@ -153,8 +153,10 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 15,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff" },
+  headerTitle: { fontSize: 22, fontWeight: "bold", color: "#fff", marginBottom: 5 },
 
   body: { padding: 16, paddingBottom: 24 },
 

@@ -1,3 +1,4 @@
+// app/(tabs)/Home.jsx
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
@@ -5,7 +6,10 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
+  query,
   setDoc,
+  Timestamp,
+  where,
 } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -20,11 +24,45 @@ import {
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
+const PRIMARY = "#6C63FF";
+
+// 4 ช่วงเวลามาตรฐานของวัน
+const BASE_SLOTS = [
+  { id: "S1", startHour: 8, endHour: 10 },
+  { id: "S2", startHour: 10, endHour: 12 },
+  { id: "S3", startHour: 13, endHour: 15 },
+  { id: "S4", startHour: 15, endHour: 17 },
+];
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function endOfToday() {
+  const d = new Date();
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+// slot ที่ยังเหลืออยู่ (ตัดทิ้ง slot ที่สิ้นสุดไปแล้ว)
+function remainingSlotIds(now = new Date()) {
+  const ids = [];
+  BASE_SLOTS.forEach((s) => {
+    const end = new Date(now);
+    end.setHours(s.endHour, 0, 0, 0);
+    if (end > now) ids.push(s.id);
+  });
+  return ids;
+}
+
 export default function HomeScreen() {
   const [rooms, setRooms] = useState([]);
   const [favIds, setFavIds] = useState(new Set());
-  const [query, setQuery] = useState("");
+  const [queryText, setQueryText] = useState("");
   const [avatar, setAvatar] = useState(null);
+
+  // bookings วันนี้: roomId -> Set(slotId ที่ถูกจอง)
+  const [bookedTodayMap, setBookedTodayMap] = useState(new Map());
 
   // rooms realtime
   useEffect(() => {
@@ -36,7 +74,7 @@ export default function HomeScreen() {
     return unsub;
   }, []);
 
-  // favorites realtime (per-user)
+  // favorites realtime
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -63,16 +101,65 @@ export default function HomeScreen() {
     return unsub;
   }, []);
 
-  // stats
+  // ✅ subscribe bookings ของ "วันนี้" (approved/in_use/pending)
+  useEffect(() => {
+    const start = Timestamp.fromDate(startOfToday());
+    const end = Timestamp.fromDate(endOfToday());
+    const qToday = query(
+      collection(db, "bookings"),
+      where("slotStart", ">=", start),
+      where("slotStart", "<=", end),
+      where("status", "in", ["approved", "in_use", "pending"])
+    );
+
+    const unsub = onSnapshot(
+      qToday,
+      (snap) => {
+        const map = new Map();
+        snap.forEach((ds) => {
+          const b = ds.data();
+          const rId = b.roomId || b.room || b.roomCode; // รองรับหลายฟิลด์
+          const sId = b.slotId;
+          if (!rId || !sId) return;
+          if (!map.has(rId)) map.set(rId, new Set());
+          map.get(rId).add(sId);
+        });
+        setBookedTodayMap(map);
+      },
+      (err) => {
+        console.error("bookings(today) onSnapshot:", err);
+        setBookedTodayMap(new Map()); // ไม่บังคับ fail
+      }
+    );
+    return unsub;
+  }, []);
+
+  // helper: ห้องยัง “ว่างจองได้วันนี้ไหม” (มี slot ที่ยังไม่ผ่านเวลาและไม่ถูกจองเหลืออยู่)
+  function isRoomAvailableToday(room) {
+    const now = new Date();
+    const remain = remainingSlotIds(now);
+    if (remain.length === 0) return false; // วันนี้หมดแล้ว
+
+    const bookedSet = bookedTodayMap.get(room.id) || new Set();
+    const allRemainingBooked = remain.every((sid) => bookedSet.has(sid));
+    return !allRemainingBooked;
+  }
+
+  // stats (ใช้แค่แสดงผล, ไม่ไปล็อกการจอง)
   const stats = useMemo(() => {
     const all = rooms.length;
-    const available = rooms.filter((r) => r.availableToday).length;
-    return { available, all };
-  }, [rooms]);
+    const now = new Date();
+    const remain = remainingSlotIds(now);
+    if (remain.length === 0) {
+      return { available: 0, all, closed: true }; // เลยช่วงสุดท้ายแล้ว = Closed
+    }
+    const available = rooms.filter((r) => isRoomAvailableToday(r)).length;
+    return { available, all, closed: available === 0 };
+  }, [rooms, bookedTodayMap]);
 
-  // filter + sort
+  // filter + sort (ไม่ใช้ availableToday ใน UI, ใช้เฉพาะคำนวณ stats)
   const visibleRooms = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = queryText.trim().toLowerCase();
     const withLiked = rooms.map((r) => ({ ...r, liked: favIds.has(r.id) }));
     const filtered = withLiked.filter(
       (r) =>
@@ -83,7 +170,7 @@ export default function HomeScreen() {
       if (a.liked !== b.liked) return a.liked ? -1 : 1;
       return String(a.name || "").localeCompare(String(b.name || ""));
     });
-  }, [rooms, favIds, query]);
+  }, [rooms, favIds, queryText]);
 
   // toggle favorite
   const toggleLike = async (roomId, isLiked) => {
@@ -196,20 +283,30 @@ export default function HomeScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Search Meeting Room"
-            value={query}
-            onChangeText={setQuery}
+            value={queryText}
+            onChangeText={setQueryText}
             returnKeyType="search"
           />
         </View>
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <StatCard title="Room available today" value={String(stats.available)} />
+      {/* Stats — ใช้เฉพาะแสดง ไม่ล็อค booking */}
+      <View className="statsRow" style={styles.statsRow}>
+        <StatCard
+          title="Room available today"
+          value={stats.closed ? "Closed" : String(stats.available)}
+        />
         <StatCard title="All rooms" value={String(stats.all)} />
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 10,
+        }}
+      >
         <Text style={styles.meetingRoomText}>Meeting room</Text>
         <TouchableOpacity onPress={() => router.push("/screens/RoomCalendar")}>
           <MaterialIcons name="calendar-month" size={30} style={styles.metaIcon} />
@@ -238,8 +335,6 @@ function StatCard({ title, value }) {
   );
 }
 
-const PRIMARY = "#6C63FF";
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
@@ -257,9 +352,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: "#00000055" },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#00000055",
+  },
 
-  headerTitle: { color: "#fff", fontSize: 26, fontWeight: "700", marginTop: 6, marginLeft: 20 },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 26,
+    fontWeight: "700",
+    marginTop: 4,
+    marginLeft: 20,
+  },
 
   searchWrap: {
     marginTop: 10,
@@ -280,10 +387,22 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 15, color: "#1F2937" },
 
-  statsRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
-  statCard: { flex: 1, backgroundColor: "#f5f6ff", borderRadius: 14, padding: 14 },
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#f5f6ff",
+    borderRadius: 14,
+    padding: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   statTitle: { color: "#6b6f76", fontSize: 12, marginBottom: 6 },
-  statValue: { fontSize: 28, fontWeight: "800", color: "#2b2d31" },
+  statValue: { fontSize: 24, fontWeight: "800", color: "#6C63FF" },
 
   card: {
     flexDirection: "row",
@@ -300,16 +419,50 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E6E8F0",
   },
-  cardImage: { width: 140, height: 130, borderRadius: 12, backgroundColor: "#e9eefc" },
+  cardImage: {
+    width: 140,
+    height: 130,
+    borderRadius: 12,
+    backgroundColor: "#e9eefc",
+  },
   cardBody: { flex: 1 },
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: "#222", maxWidth: "85%" },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#222",
+    maxWidth: "85%",
+  },
   metaRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
   metaValue: { fontSize: 13, color: "#2b2d31" },
   metaIcon: { color: "#4a4a4a", marginRight: 6 },
 
-  footerRow: { marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  bookBtn: { backgroundColor: "#6C63FF", paddingHorizontal: 14, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  footerRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  bookBtn: {
+    backgroundColor: "#6C63FF",
+    paddingHorizontal: 14,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   bookBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
-  meetingRoomText: { fontSize: 24, fontWeight: "500", marginLeft: 16, marginTop: 8, marginBottom: 4, color: "#222" },
+  meetingRoomText: {
+    fontSize: 24,
+    fontWeight: "500",
+    marginLeft: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    color: "#222",
+  },
 });

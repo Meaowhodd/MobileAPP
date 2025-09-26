@@ -115,8 +115,10 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 15,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "white" },
+  headerTitle: { fontSize: 22, fontWeight: "bold", color: "white" ,marginBottom: 5},
   body: { padding: 20 },
   cardRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 15 },
   card: {

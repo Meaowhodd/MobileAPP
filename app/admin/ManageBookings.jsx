@@ -14,14 +14,16 @@ import {
 } from "react-native";
 
 import {
+  addDoc,
   collection,
   doc,
   onSnapshot,
   orderBy,
   query,
+  serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../../firebaseConfig"; // 👈 ปรับ path ให้ตรงโปรเจกต์จริง
+import { db } from "../../firebaseConfig";
 
 /* ===== Helpers ===== */
 const fmtDate = (row) => {
@@ -45,12 +47,8 @@ const statusColor = (status) => {
   }
 };
 const normalizeAccessories = (bk) => {
-  if (Array.isArray(bk?.accessories)) {
-    return bk.accessories.filter(Boolean).map(String);
-  }
-  if (bk?.accessory) {
-    return [String(bk.accessory)];
-  }
+  if (Array.isArray(bk?.accessories)) return bk.accessories.filter(Boolean).map(String);
+  if (bk?.accessory) return [String(bk.accessory)];
   return [];
 };
 
@@ -62,7 +60,7 @@ export default function ManageBookings() {
 
   // Confirm modal (approve/reject)
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [actionType, setActionType] = useState(null);
+  const [actionType, setActionType] = useState(null); // "approve" | "reject"
   const [selected, setSelected] = useState(null);
 
   // Details modal (view)
@@ -75,7 +73,10 @@ export default function ManageBookings() {
         const map = {};
         snap.docs.forEach((d) => {
           const u = d.data();
-          map[d.id] = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || d.id;
+          map[d.id] =
+            `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() ||
+            u.email ||
+            d.id;
         });
         setUsersMap(map);
       });
@@ -96,7 +97,7 @@ export default function ManageBookings() {
   /* ===== Actions ===== */
   const openConfirm = (bk, type) => {
     setSelected(bk);
-    setActionType(type);
+    setActionType(type); // "approve" | "reject"
     setConfirmOpen(true);
   };
   const closeConfirm = () => {
@@ -114,12 +115,46 @@ export default function ManageBookings() {
     setSelected(null);
   };
 
+  // ➜ สร้าง Notification ให้ผู้ใช้ (ตอนอนุมัติ/ปฏิเสธ)
+  async function pushUserNotification({ userId, booking, newStatus }) {
+    if (!userId) return;
+    const roomName = booking.roomName || booking.room || booking.roomId || "-";
+    const roomCode = booking.roomCode || booking.room || "";
+    const title =
+      newStatus === "approved" ? "ยืนยันการจองแล้ว!" : "การจองถูกปฏิเสธ";
+    const description = `${roomName}${roomCode ? ` (${roomCode})` : ""} • ${fmtDate(
+      booking
+    )} • ${fmtTime(booking)} — สถานะ: ${newStatus}`;
+
+    await addDoc(collection(db, "users", userId, "notifications"), {
+      type: newStatus === "approved" ? "booking_confirmed" : "booking_updated",
+      title,
+      description,
+      createdAt: serverTimestamp(),
+      read: false,
+      roomName,
+      roomCode,
+      slotStart: booking.slotStart,
+      slotEnd: booking.slotEnd,
+      status: newStatus, // "approved" | "rejected"
+    });
+  }
+
   const applyAction = async () => {
     if (!selected || !actionType) return;
+    const newStatus = actionType === "approve" ? "approved" : "rejected";
+
     try {
-      await updateDoc(doc(db, "bookings", selected.id), {
-        status: actionType === "approve" ? "approved" : "rejected",
+      // 1) อัปเดตสถานะ booking
+      await updateDoc(doc(db, "bookings", selected.id), { status: newStatus });
+
+      // 2) แจ้งเตือนไปยังเจ้าของ
+      await pushUserNotification({
+        userId: selected.userId,
+        booking: selected,
+        newStatus,
       });
+
       closeConfirm();
     } catch (e) {
       console.error(e);
@@ -134,8 +169,18 @@ export default function ManageBookings() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Manage Bookings</Text>
-        <View style={{ width: 24 }} />
+
+        {/* ปุ่มไปหน้าดูประวัติ (ไม่มีปุ่มลบในหน้านี้) */}
+        <TouchableOpacity
+          onPress={() => router.push("/admin/BookingsHistory")}
+          style={styles.historyBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="time-outline" size={18} color="#6A5AE0" />
+          <Text style={styles.historyText}>History</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Body */}
@@ -160,56 +205,84 @@ export default function ManageBookings() {
                   <Text style={styles.bookingDetail}>Date: {fmtDate(bk)}</Text>
                   <Text style={styles.bookingDetail}>Time: {fmtTime(bk)}</Text>
 
-                  <View style={styles.statusRow}>
-                    <View style={[styles.statusChip, { borderColor: statusColor(status) }]}>
-                      <Text style={[styles.statusText, { color: statusColor(status) }]}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </Text>
-                    </View>
-
-                    <View
+                <View style={styles.statusRow}>
+                  <View
+                    style={[
+                      styles.statusChip,
+                      { borderColor: statusColor(status) },
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.statusChip,
-                        { borderColor: hasAccessory ? "#16a34a" : "#ef4444", marginLeft: 8 },
+                        styles.statusText,
+                        { color: statusColor(status) },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.statusText,
-                          { color: hasAccessory ? "#16a34a" : "#ef4444" },
-                        ]}
-                      >
-                        {hasAccessory ? "Accessory" : "Accessory"}
-                      </Text>
-                    </View>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.statusChip,
+                      {
+                        borderColor: hasAccessory ? "#16a34a" : "#ef4444",
+                        marginLeft: 8,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: hasAccessory ? "#16a34a" : "#ef4444" },
+                      ]}
+                    >
+                      {hasAccessory ? "Accessory" : "Accessory"}
+                    </Text>
                   </View>
                 </View>
-
-                {/* Actions: View / Approve / Reject */}
-                <View style={styles.actions}>
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => openDetails(bk)}>
-                    <Ionicons name="information-circle-outline" size={22} color="#3b82f6" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionBtn, !canAct && { opacity: 0.35 }]}
-                    disabled={!canAct}
-                    onPress={() => openConfirm(bk, "approve")}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={22} color="#16a34a" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionBtn, !canAct && { opacity: 0.35 }]}
-                    disabled={!canAct}
-                    onPress={() => openConfirm(bk, "reject")}
-                  >
-                    <Ionicons name="close-circle-outline" size={22} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
               </View>
-            );
-          })}
+
+              {/* Actions: View / Approve / Reject  (ไม่มีปุ่มลบ) */}
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => openDetails(bk)}
+                >
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={22}
+                    color="#3b82f6"
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionBtn, !canAct && { opacity: 0.35 }]}
+                  disabled={!canAct}
+                  onPress={() => openConfirm(bk, "approve")}
+                >
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={22}
+                    color="#16a34a"
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionBtn, !canAct && { opacity: 0.35 }]}
+                  disabled={!canAct}
+                  onPress={() => openConfirm(bk, "reject")}
+                >
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={22}
+                    color="#ef4444"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        })}
 
         {bookings.filter((bk) =>
           ["approved", "pending"].includes((bk.status || "").toLowerCase())
@@ -221,23 +294,44 @@ export default function ManageBookings() {
       </ScrollView>
 
       {/* ===== Details Modal ===== */}
-      <Modal transparent visible={detailsOpen} animationType="fade" onRequestClose={closeDetails}>
+      <Modal
+        transparent
+        visible={detailsOpen}
+        animationType="fade"
+        onRequestClose={closeDetails}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Booking Details</Text>
             {selected && (
               <>
-                <DetailRow label="ชื่อผู้จอง" value={usersMap[selected.userId] || "-"} />
-                <DetailRow label="ห้อง" value={selected.roomName || selected.room || selected.roomId || "-"} />
+                <DetailRow
+                  label="ชื่อผู้จอง"
+                  value={usersMap[selected.userId] || "-"}
+                />
+                <DetailRow
+                  label="ห้อง"
+                  value={
+                    selected.roomName ||
+                    selected.room ||
+                    selected.roomId ||
+                    "-"
+                  }
+                />
                 <DetailRow label="วันที่" value={fmtDate(selected)} />
                 <DetailRow label="เวลา" value={fmtTime(selected)} />
-                <DetailRow label="สถานะ" value={(selected.status || "pending").toUpperCase()} />
+                <DetailRow
+                  label="สถานะ"
+                  value={(selected.status || "pending").toUpperCase()}
+                />
                 <View style={{ marginTop: 8 }}>
                   <Text style={styles.detailLabel}>Accessory:</Text>
                   {normalizeAccessories(selected).length > 0 ? (
                     <View style={{ marginTop: 6 }}>
                       {normalizeAccessories(selected).map((a, idx) => (
-                        <Text key={idx} style={styles.detailValue}>• {a}</Text>
+                        <Text key={idx} style={styles.detailValue}>
+                          • {a}
+                        </Text>
                       ))}
                     </View>
                   ) : (
@@ -249,7 +343,10 @@ export default function ManageBookings() {
               </>
             )}
             <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.btn, styles.btnPrimary]} onPress={closeDetails}>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnPrimary]}
+                onPress={closeDetails}
+              >
                 <Text style={[styles.btnText, { color: "#fff" }]}>Close</Text>
               </TouchableOpacity>
             </View>
@@ -257,8 +354,13 @@ export default function ManageBookings() {
         </View>
       </Modal>
 
-      {/* ===== Confirm Modal ===== */}
-      <Modal transparent visible={confirmOpen} animationType="fade" onRequestClose={closeConfirm}>
+      {/* ===== Confirm Modal (Approve / Reject) ===== */}
+      <Modal
+        transparent
+        visible={confirmOpen}
+        animationType="fade"
+        onRequestClose={closeConfirm}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
@@ -267,24 +369,41 @@ export default function ManageBookings() {
             {selected && (
               <Text style={styles.modalSub}>
                 {`ผู้ใช้: ${usersMap[selected.userId] || "-"}`}
-                {`\nห้อง: ${selected.roomName || selected.room || selected.roomId || "-"}`}
+                {`\nห้อง: ${
+                  selected.roomName || selected.room || selected.roomId || "-"
+                }`}
                 {`\nวันที่: ${fmtDate(selected)}`}
                 {`\nเวลา: ${fmtTime(selected)}`}
               </Text>
             )}
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={closeConfirm}>
-                <Text style={[styles.btnText, { color: "#6A5AE0" }]}>Cancel</Text>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnGhost]}
+                onPress={closeConfirm}
+              >
+                <Text style={[styles.btnText, { color: "#6A5AE0" }]}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               {actionType === "approve" ? (
-                <TouchableOpacity style={[styles.btn, styles.btnApprove]} onPress={applyAction}>
-                  <Text style={[styles.btnText, { color: "#fff" }]}>Approve</Text>
+                <TouchableOpacity
+                  style={[styles.btn, styles.btnApprove]}
+                  onPress={applyAction}
+                >
+                  <Text style={[styles.btnText, { color: "#fff" }]}>
+                    Approve
+                  </Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity style={[styles.btn, styles.btnReject]} onPress={applyAction}>
-                  <Text style={[styles.btnText, { color: "#fff" }]}>Reject</Text>
+                <TouchableOpacity
+                  style={[styles.btn, styles.btnReject]}
+                  onPress={applyAction}
+                >
+                  <Text style={[styles.btnText, { color: "#fff" }]}>
+                    Reject
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -316,8 +435,23 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 15,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "white" },
+  headerTitle: { fontSize: 20, fontWeight: "bold", color: "white", marginBottom: 5 },
+
+  // ปุ่ม History ด้านขวา
+  historyBtn: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  historyText: { color: "#6A5AE0", fontWeight: "700" },
+
   body: { padding: 20 },
 
   bookingCard: {
@@ -360,7 +494,7 @@ const styles = StyleSheet.create({
   modalSub: { marginTop: 10, color: "#555", lineHeight: 20, whiteSpace: "pre-line" },
   modalActions: { flexDirection: "row", justifyContent: "flex-end", marginTop: 16 },
 
-  btn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10 ,marginRight:5},
+  btn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, marginRight: 5 },
   btnGhost: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#6A5AE0" },
   btnPrimary: { backgroundColor: "#6A5AE0" },
   btnApprove: { backgroundColor: "#3fde79ff" }, // เขียว

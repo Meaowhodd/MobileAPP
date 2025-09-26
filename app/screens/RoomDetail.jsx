@@ -71,7 +71,7 @@ export default function RoomDetail() {
             </TouchableOpacity>
 
             <View style={{ flexDirection: "row", gap: 10 }}>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => {}}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("../../(tabs)/Inbox")}>
                 <Ionicons name="notifications-outline" size={20} color="#111827" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={toggleLikeRemote}>
@@ -93,10 +93,6 @@ export default function RoomDetail() {
 
             <View style={{ alignItems: "flex-end" }}>
               <Text style={styles.codeText}>{params.roomCode || params.code || "-"}</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-                <AntDesign name="star" size={14} color="#f59e0b" />
-                <Text style={styles.ratingText}> {rating.toFixed(1)}</Text>
-              </View>
             </View>
           </View>
 
@@ -118,7 +114,7 @@ export default function RoomDetail() {
             )}
             {!!(params.code || params.roomCode) && (
               <View style={styles.infoItem}>
-                <MaterialIcons name="meeting_room" size={18} color="#4b5563" />
+                <MaterialIcons name="door-front" size={18} color="#4b5563" />
                 <Text style={styles.infoText}>Room {params.code || params.roomCode}</Text>
               </View>
             )}
@@ -189,12 +185,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   titleRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  title: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  codeText: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 19, fontWeight: "700", color: "#111827" },
+  codeText: { fontSize: 17, fontWeight: "700", color: "#111827" },
   ratingText: { color: "#111827", fontWeight: "600" },
 
-  sectionTitle: { fontSize: 13, color: "#6b7280", marginBottom: 6 },
-  sectionText: { fontSize: 13.5, color: "#1f2937", lineHeight: 19 },
+  sectionTitle: { fontSize: 14, color: "#6b7280", marginBottom: 6 },
+  sectionText: { fontSize: 14.5, color: "#1f2937", lineHeight: 19 },
 
   infoRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 18 },
   infoItem: {

@@ -176,9 +176,6 @@ export default function LoginScreen() {
       {/* Remember + Reset */}
       <View style={styles.row}>
         <Text style={styles.remember}>○ Remember Me</Text>
-        <TouchableOpacity onPress={handleResetPassword}>
-          <Text style={styles.reset}>Reset Password</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Sign in */}

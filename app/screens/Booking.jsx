@@ -2,10 +2,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import {
+  addDoc,
   collection,
   doc,
   onSnapshot,
   query,
+  serverTimestamp,
   Timestamp,
   where,
 } from "firebase/firestore";
@@ -32,9 +34,7 @@ import {
 } from "react-native-paper";
 import { auth, db } from "../../firebaseConfig";
 
-import {
-  createBookingWithLimit,
-} from "../services/bookings";
+import { createBookingWithLimit } from "../services/bookings";
 
 const COLOR = {
   primary: "#6A5AE0",
@@ -118,6 +118,8 @@ export default function BookingForm() {
 
   const [accessories, setAccessories] = useState([]);
   const [accModalVisible, setAccModalVisible] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
 
   const userId = auth.currentUser?.uid || null;
 
@@ -259,6 +261,7 @@ export default function BookingForm() {
   }, [roomId, dateObj, slot]);
 
   const onConfirm = async () => {
+    if (submitting) return;
     if (!roomName || !roomCode || capacityMin == null || capacityMax == null || !slot) {
       Alert.alert("กรอกไม่ครบ", "ข้อมูลห้อง/ความจุ/ช่วงเวลายังไม่ครบ");
       return;
@@ -293,6 +296,7 @@ export default function BookingForm() {
       return;
     }
 
+    setSubmitting(true);
     try {
       const payload = {
         userId: uid,
@@ -308,8 +312,27 @@ export default function BookingForm() {
         status: "pending",
       };
 
-      // ✅ ควรอัปเดต createBookingWithLimit ฝั่ง service ให้รวม pending ด้วย
+      // ✅ สร้าง booking (ฝั่ง service ตรวจ limit)
       await createBookingWithLimit(payload);
+
+      // ✅ เพิ่ม notification ให้ผู้ใช้ (ไว้โชว์ใน Inbox)
+      const title = "สร้างคำขอจองแล้ว";
+      const dd = formatDate(dateObj);
+      const description = `${roomName} (${roomCode}) • ${dd} • ${slot.label} — สถานะ: pending`;
+
+      await addDoc(collection(db, "users", uid, "notifications"), {
+        type: "booking_created",
+        title,
+        description,
+        createdAt: serverTimestamp(),
+        read: false,
+        // แนบข้อมูลสำหรับหน้า Inbox ให้ครบ ๆ
+        roomName,
+        roomCode,
+        slotStart: Timestamp.fromDate(startDate),
+        slotEnd: Timestamp.fromDate(endDate),
+        status: "pending",
+      });
 
       Alert.alert(
         "จองสำเร็จ",
@@ -319,6 +342,8 @@ export default function BookingForm() {
     } catch (e) {
       console.error("create booking error:", e);
       Alert.alert("จองไม่สำเร็จ", e?.message || "ลองใหม่อีกครั้ง");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -545,13 +570,13 @@ export default function BookingForm() {
           <TouchableOpacity
             style={[
               styles.pillConfirm,
-              (reachedLimit || !slot) && { opacity: 0.5 },
+              (reachedLimit || !slot || submitting) && { opacity: 0.5 },
             ]}
             onPress={onConfirm}
-            disabled={reachedLimit || !slot}
+            disabled={reachedLimit || !slot || submitting}
           >
             <Text style={styles.pillConfirmText}>
-              {reachedLimit ? "เต็มโควต้าแล้ว" : "Confirm"}
+              {submitting ? "Processing..." : reachedLimit ? "เต็มโควต้าแล้ว" : "Confirm"}
             </Text>
           </TouchableOpacity>
         </View>
