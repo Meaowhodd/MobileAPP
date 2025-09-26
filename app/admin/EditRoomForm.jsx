@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,7 +20,7 @@ import { db } from "../../firebaseConfig";
 
 /** ใช้ค่าเดียวกับ AddRoomForm */
 const CLOUD_NAME = "dlknbn6pd";
-const UPLOAD_PRESET = "unsigned_rooms";
+const UPLOAD_PRESET = "unsigned_rooms"; // ต้องเป็น unsigned preset
 
 export default function EditRoomForm() {
   const router = useRouter();
@@ -40,7 +41,6 @@ export default function EditRoomForm() {
           return;
         }
         const data = snap.data();
-        // map default fields ให้ครบ คล้าย AddRoomForm
         setRoom({
           name: data.name ?? "",
           code: data.code ?? "",
@@ -54,6 +54,8 @@ export default function EditRoomForm() {
           image: data.image ?? "",
           // ธงบอกว่าเป็นรูปใหม่จากเครื่องหรือไม่
           isLocal: false,
+          // เก็บ base64 ไว้ใช้ตอนอัปโหลด (ถ้ามี)
+          _base64: null,
         });
       } catch (err) {
         console.error(err);
@@ -64,39 +66,81 @@ export default function EditRoomForm() {
     if (id) fetchRoom();
   }, [id]);
 
-  // เลือกรูป
+  // เลือกรูป (ดึง base64 มาด้วย)
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
+      base64: true,
     });
     if (!result.canceled) {
-      setRoom((s) => ({ ...s, image: result.assets[0].uri, isLocal: true }));
+      const asset = result.assets[0];
+      setRoom((s) => ({
+        ...s,
+        image: asset.uri, // สำหรับ preview
+        _base64: asset.base64 || null,
+        isLocal: true,
+      }));
     }
   };
 
-  // อัปโหลดขึ้น Cloudinary (เหมือน AddRoomForm)
-  const uploadToCloudinary = async (localUri) => {
-    const data = new FormData();
-    data.append("file", { uri: localUri, type: "image/jpeg", name: "room.jpg" });
-    data.append("upload_preset", UPLOAD_PRESET);
+  // อัปโหลดขึ้น Cloudinary (รองรับ web/native + base64)
+  const uploadToCloudinary = async (localUri, base64Opt) => {
+    const form = new FormData();
+    form.append("upload_preset", UPLOAD_PRESET);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-      method: "POST",
-      body: data,
-    });
+    if (base64Opt) {
+      // data URL ทางลัด ชัวร์สุด
+      form.append("file", `data:image/jpeg;base64,${base64Opt}`);
+    } else if (localUri) {
+      if (Platform.OS === "web") {
+        // บนเว็บ ต้องแปลง blob:... เป็น Blob ก่อน
+        const res = await fetch(localUri);
+        if (!res.ok) throw new Error(`อ่านไฟล์จาก uri ไม่ได้: ${res.status}`);
+        const blob = await res.blob();
+        const name =
+          (localUri.split("/").pop() || `room_${Date.now()}`) + guessExt(blob.type);
+        form.append("file", blob, name);
+      } else {
+        // บน native แนบเป็นไฟล์จาก uri ได้เลย
+        form.append("file", {
+          uri: localUri,
+          name: "room.jpg",
+          type: "image/jpeg",
+        });
+      }
+    } else {
+      throw new Error("ไม่มีรูปสำหรับอัปโหลด");
+    }
 
+    // ห้ามตั้ง Content-Type เอง ให้ fetch จัดการ boundary
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      { method: "POST", body: form }
+    );
     const json = await res.json();
-    if (!res.ok || !json.secure_url) {
-      throw new Error(json?.error?.message || "Upload failed");
+    if (!res.ok || !json?.secure_url) {
+      throw new Error(json?.error?.message || `Upload failed: ${res.status}`);
     }
     return json.secure_url;
   };
 
+  function guessExt(mime = "") {
+    if (mime.includes("png")) return ".png";
+    if (mime.includes("webp")) return ".webp";
+    if (mime.includes("gif")) return ".gif";
+    return ".jpg";
+  }
+
   const validate = () => {
-    if (!room.name.trim() || !room.code.trim() || !room.capacityMin.trim() || !room.capacityMax.trim()) {
+    if (
+      !room.name.trim() ||
+      !room.code.trim() ||
+      !room.capacityMin.trim() ||
+      !room.capacityMax.trim()
+    ) {
       Alert.alert("ข้อมูลไม่ครบ", "กรุณากรอกชื่อห้อง, รหัสห้อง และความจุ (ขั้นต่ำ/สูงสุด)");
       return false;
     }
@@ -121,7 +165,7 @@ export default function EditRoomForm() {
 
       let imageUrl = room.image || "";
       if (room.isLocal && room.image) {
-        imageUrl = await uploadToCloudinary(room.image);
+        imageUrl = await uploadToCloudinary(room.image, room._base64);
       }
 
       await updateDoc(doc(db, "rooms", String(id)), {
@@ -167,10 +211,7 @@ export default function EditRoomForm() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.body}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {/* Upload รูป */}
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
           {room.image ? (
@@ -305,9 +346,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
   },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff", marginBottom: 5 },
-
   body: { padding: 20, paddingBottom: 24 },
-
   imagePicker: {
     width: "100%",
     height: 180,
@@ -322,7 +361,6 @@ const styles = StyleSheet.create({
   },
   roomImage: { width: "100%", height: "100%", resizeMode: "cover" },
   placeholder: { justifyContent: "center", alignItems: "center" },
-
   input: {
     backgroundColor: "#f6f7f9",
     borderRadius: 10,
@@ -336,7 +374,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   textarea: { height: 80, paddingTop: 10, textAlignVertical: "top" },
-
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -344,7 +381,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   half: { width: "48%" },
-
   saveBtn: {
     backgroundColor: "#6A5AE0",
     paddingVertical: 14,

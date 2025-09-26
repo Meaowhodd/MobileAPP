@@ -1,4 +1,4 @@
-import { AntDesign, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { deleteDoc, doc, onSnapshot, setDoc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
@@ -75,7 +75,7 @@ export default function RoomDetail() {
                 <Ionicons name="notifications-outline" size={20} color="#111827" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={toggleLikeRemote}>
-                <AntDesign name={liked ? "heart" : "hearto"} size={18} color={liked ? "#ff3b30" : "#111827"} />
+                <Ionicons name={liked ? "heart" : "heart-outline"} size={18} color={liked ? "#ff3b30" : "#111827"} />
               </TouchableOpacity>
             </View>
           </View>
