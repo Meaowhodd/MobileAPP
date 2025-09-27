@@ -114,7 +114,10 @@ export default function ProfileSettingScreen() {
         form.append("file", { uri: asset.uri, type: mime, name: filename });
       }
 
+      // 🔑 unsigned preset + เก็บแยกตาม user
       form.append("upload_preset", CLOUDINARY_UNSIGNED_PRESET);
+      form.append("folder", `userPhoto/${uid}`);          // ✅ โฟลเดอร์แยกตาม uid
+      form.append("public_id", `profile-${Date.now()}`);  // ชื่อไฟล์ไม่ซ้ำ
 
       const res = await fetch(uploadUrl, { method: "POST", body: form });
       if (!res.ok) throw new Error(await res.text());
