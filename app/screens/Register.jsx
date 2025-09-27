@@ -23,10 +23,10 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [firstName, setFirstName] = useState("");
-  const [lastName,  setLastName]  = useState("");
-  const [email,     setEmail]     = useState("");
-  const [password,  setPassword]  = useState("");
-  const [loading,   setLoading]   = useState(false);
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const onRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
@@ -47,14 +47,17 @@ export default function RegisterScreen() {
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         firstName: firstName.trim(),
-        lastName:  lastName.trim(),
+        lastName: lastName.trim(),
         role: "student",
+        phone: "",      // ✅ ค่าเริ่มต้นว่าง
+        dob: "",        // ✅ ค่าเริ่มต้นว่าง
+        photoUrl: "",   // ✅ ค่าเริ่มต้นว่าง
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
       Alert.alert("สำเร็จ", "Account created 🎉");
-      router.push("/screens/Login"); // หรือเปลี่ยนเป็นเส้นทางของคุณ
+      router.push("/screens/Login");
     } catch (err) {
       console.error("register error:", err);
       let msg = "สมัครสมาชิกไม่สำเร็จ";
@@ -71,7 +74,7 @@ export default function RegisterScreen() {
     <LinearGradient colors={["#6A5AE0", "#A18AFF"]} style={styles.container}>
       <Text style={styles.title}>Sign up</Text>
 
-      {/* First / Last name (แถวเดียว) */}
+      {/* First / Last name */}
       <View style={styles.nameRowOneLine}>
         <TextInput
           placeholder="First name"
@@ -121,6 +124,7 @@ export default function RegisterScreen() {
       <TouchableOpacity style={styles.signupBtn} onPress={onRegister} disabled={loading}>
         {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.signupText}>Sign up</Text>}
       </TouchableOpacity>
+
       <Text style={styles.loginText}>
         If you already have an account{" "}
         <Text style={styles.loginLink} onPress={() => router.push("/screens/Login")}>
@@ -170,16 +174,16 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // name row (หนึ่งแถวเสมอ)
+  // name row
   nameRowOneLine: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "nowrap",   // ✅ บังคับให้อยู่บรรทัดเดียว
+    flexWrap: "nowrap",
     marginBottom: 15,
   },
   nameCell: {
-    flex: 1,              // แบ่งพื้นที่เท่า ๆ กัน
-    minWidth: 0,          // กัน overflow บนจอแคบ
+    flex: 1,
+    minWidth: 0,
   },
   nameLeft: { marginRight: 10 },
 
@@ -210,7 +214,16 @@ const styles = StyleSheet.create({
   divider: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   line: { flex: 1, height: 1, backgroundColor: "#aaa" },
   orText: { color: "#ddd", marginHorizontal: 10 },
-  socialRow: { flexDirection: "row", justifyContent: "center", marginBottom: 20 },
-  socialBtn: { backgroundColor: "white", borderRadius: 50, padding: 10, marginHorizontal: 10 },
+  socialRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  socialBtn: {
+    backgroundColor: "white",
+    borderRadius: 50,
+    padding: 10,
+    marginHorizontal: 10,
+  },
   socialIcon: { width: 30, height: 30 },
 });
