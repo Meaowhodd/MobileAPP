@@ -117,7 +117,7 @@ export default function ProfileScreen() {
         <Text style={styles.headerText}>My Profile</Text>
         {/* ปุ่ม Logout มุมขวา */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={27} color="#ff0000ff" />
+          <Ionicons name="log-out-outline" size={27} color="#fbf6f6ff" />
         </TouchableOpacity>
       </View>
 
