@@ -17,15 +17,13 @@ import {
 } from "react-native";
 import { db } from "../../firebaseConfig";
 
-/** === Cloudinary config (แก้ให้ตรงของคุณ) === */
-const CLOUD_NAME = "dlknbn6pd";         // ← cloud name ของคุณ
-const UPLOAD_PRESET = "unsigned_rooms"; // ← unsigned upload preset ที่อนุญาต unsigned uploads
-const CLOUD_FOLDER = "rooms";           // ← โฟลเดอร์ปลายทางใน Cloudinary
+const CLOUD_NAME = "dlknbn6pd";         
+const UPLOAD_PRESET = "unsigned_rooms"; 
+const CLOUD_FOLDER = "rooms";           
 
 export default function AddRoomForm() {
   const router = useRouter();
 
-  // form states
   const [roomName, setRoomName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [capacityMin, setCapacityMin] = useState("");
@@ -36,11 +34,9 @@ export default function AddRoomForm() {
   const [bestFor, setBestFor] = useState("");
   const [atmosphere, setAtmosphere] = useState("");
 
-  // image states
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  /* ========== Pick image ========== */
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -51,7 +47,6 @@ export default function AddRoomForm() {
     if (!result.canceled) setImage(result.assets[0].uri);
   };
 
-  /* ========== Upload to Cloudinary (รองรับ web + native) ========== */
   const uploadToCloudinary = async (localUri) => {
     if (!localUri) return "";
 
@@ -59,7 +54,6 @@ export default function AddRoomForm() {
     const formData = new FormData();
 
     if (Platform.OS === "web") {
-      // บนเว็บต้องแปลงเป็น Blob
       const res = await fetch(localUri);
       const blob = await res.blob();
       formData.append("file", blob, "room.jpg");
@@ -84,7 +78,6 @@ export default function AddRoomForm() {
     return json.secure_url || "";
   };
 
-  /* ========== Validate ========== */
   const validate = () => {
     if (!roomName.trim() || !roomCode.trim()) {
       Alert.alert("ข้อมูลไม่ครบ", "กรุณากรอกชื่อห้องและรหัสห้อง");
@@ -107,7 +100,6 @@ export default function AddRoomForm() {
     return true;
   };
 
-  /* ========== Save ========== */
   const handleSave = async () => {
     if (!validate()) return;
 
@@ -116,10 +108,10 @@ export default function AddRoomForm() {
 
       let imageUrl = "";
       if (image) {
-        imageUrl = await uploadToCloudinary(image); // อัปโหลดถ้ามีรูป
+        imageUrl = await uploadToCloudinary(image); 
       }
 
-      // เตรียม payload — ไม่ส่งฟิลด์ image ถ้าอัปโหลดไม่สำเร็จ (กัน undefined)
+      
       const payload = {
         name: roomName.trim(),
         code: roomCode.trim(),
@@ -150,7 +142,6 @@ export default function AddRoomForm() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="white" />
@@ -160,7 +151,6 @@ export default function AddRoomForm() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {/* Image picker */}
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
           {image ? (
             <Image source={{ uri: image }} style={styles.roomImage} />
@@ -172,7 +162,6 @@ export default function AddRoomForm() {
           )}
         </TouchableOpacity>
 
-        {/* Form */}
         <TextInput
           style={styles.input}
           placeholder="Room Name"
@@ -191,7 +180,6 @@ export default function AddRoomForm() {
           returnKeyType="next"
         />
 
-        {/* Capacity row (ไม่ล้นจอ) */}
         <View style={styles.row}>
           <TextInput
             style={[styles.input, styles.half]}
@@ -270,7 +258,6 @@ export default function AddRoomForm() {
   );
 }
 
-/* ===== Styles ===== */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
@@ -314,11 +301,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E6EAF2",
     color: "#0F172A",
-    minWidth: 0, // กัน overflow เมื่ออยู่ในแถว
+    minWidth: 0, 
   },
   textarea: { height: 88, paddingTop: 10, textAlignVertical: "top" },
 
-  // แถวความจุไม่ล้นจอ
+
   row: {
     flexDirection: "row",
     justifyContent: "space-between",

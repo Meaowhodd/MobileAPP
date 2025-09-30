@@ -29,7 +29,6 @@ function MyTabBar({ state, descriptors, navigation }) {
           }
         };
 
-        // ✅ ปุ่มกลาง +
         if (route.name === "Create") {
           return (
             <TouchableOpacity
@@ -71,7 +70,7 @@ function MyTabBar({ state, descriptors, navigation }) {
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{ headerShown: false }} // ปิด header บนทุกหน้า
+      screenOptions={{ headerShown: false }} 
       tabBar={(props) => <MyTabBar {...props} />}
     >
       <Tabs.Screen
@@ -84,7 +83,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ✅ Booking = ปฏิทิน */}
       <Tabs.Screen
         name="Book"
         options={{
@@ -95,12 +93,11 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ✅ ปุ่มกลาง */}
       <Tabs.Screen
         name="Create"
         options={{
           title: "Create",
-          tabBarIcon: () => null, // ใช้ปุ่ม custom แทน
+          tabBarIcon: () => null, 
         }}
       />
 
@@ -130,23 +127,23 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: "row",
-    justifyContent: "space-around", // ✅ แต่ละปุ่มเว้นเท่ากัน
+    justifyContent: "space-around", 
     alignItems: "center",
     height: 70,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#ddd",
-    shadowColor: "#000", // เพิ่มเงาให้นิดหน่อย สวยขึ้น
+    shadowColor: "#000", 
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: -2 },
     shadowRadius: 4,
-    elevation: 5, // เงาสำหรับ Android
+    elevation: 5, 
   },
   tabItem: {
     alignItems: "center",
     justifyContent: "center",
     flex: 1,
-    paddingVertical: 6, // ✅ เพิ่มพื้นที่กด
+    paddingVertical: 6, 
   },
 });
 

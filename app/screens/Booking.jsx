@@ -57,7 +57,6 @@ const BASE_SLOTS = [
   { id: "S4", label: "15.00-17.00", start: 15, end: 17, available: true, dotColor: COLOR.green },
 ];
 
-// เลือกอุปกรณ์ได้สูงสุด 3 อย่าง/การจอง
 const ACCESSORY_OPTIONS = ["ทีวี", "โปรเจกเตอร์", "ไมค์", "ลำโพง", "ไวท์บอร์ด", "สาย HDMI"];
 const MAX_ACCESSORIES = 3;
 
@@ -123,11 +122,9 @@ export default function BookingForm() {
 
   const userId = auth.currentUser?.uid || null;
 
-  // ▼ นับรวม approved + in_use + pending ที่ยัง active (slotEnd >= now)
   const [activeCount, setActiveCount] = useState(0);
   const reachedLimit = activeCount >= 2;
 
-  // --- ดึงพารามิเตอร์ห้อง ---
   useEffect(() => {
     if (params?.roomId) setRoomId(String(params.roomId));
     if (params?.roomName) setRoomName(String(params.roomName));
@@ -136,7 +133,6 @@ export default function BookingForm() {
     if (params?.capacityMax) setCapacityMax(Number(params.capacityMax));
   }, [params]);
 
-  // --- sync room doc ---
   useEffect(() => {
     if (!roomId) return;
     const ref = doc(db, "rooms", roomId);
@@ -155,7 +151,6 @@ export default function BookingForm() {
     return unsub;
   }, [roomId]);
 
-  // --- subscribe: active bookings ของผู้ใช้ (รวม pending) ---
   useEffect(() => {
     if (!userId) return;
     const nowTs = Timestamp.fromDate(new Date());
@@ -163,7 +158,7 @@ export default function BookingForm() {
       collection(db, "bookings"),
       where("userId", "==", userId),
       where("status", "in", ["approved", "in_use", "pending"]),
-      where("slotEnd", ">=", nowTs) // ยังไม่หมดเวลา
+      where("slotEnd", ">=", nowTs) 
     );
     const unsub = onSnapshot(
       qMine,
@@ -201,7 +196,6 @@ export default function BookingForm() {
     return String(capacityMax);
   }, [capacityMin, capacityMax]);
 
-  // อัปเดตสถานะว่าง/ไม่ว่าง + past/gray + pending/orange
   useEffect(() => {
     if (!roomId || !dateObj) return;
 
@@ -272,7 +266,6 @@ export default function BookingForm() {
       return;
     }
 
-    // ป้องกันอีกชั้นใน client: ถ้าเต็มโควต้าแล้วไม่ให้กด (กัน race เผื่อ UI lag)
     if (reachedLimit) {
       Alert.alert("เต็มโควต้า", "คุณมีการจองที่รอดำเนินการหรืออนุมัติครบ 2 รายการแล้ว");
       return;
@@ -312,10 +305,8 @@ export default function BookingForm() {
         status: "pending",
       };
 
-      // ✅ สร้าง booking (ฝั่ง service ตรวจ limit)
       await createBookingWithLimit(payload);
 
-      // ✅ เพิ่ม notification ให้ผู้ใช้ (ไว้โชว์ใน Inbox)
       const title = "สร้างคำขอจองแล้ว";
       const dd = formatDate(dateObj);
       const description = `${roomName} (${roomCode}) • ${dd} • ${slot.label} — สถานะ: pending`;
@@ -326,7 +317,6 @@ export default function BookingForm() {
         description,
         createdAt: serverTimestamp(),
         read: false,
-        // แนบข้อมูลสำหรับหน้า Inbox ให้ครบ ๆ
         roomName,
         roomCode,
         slotStart: Timestamp.fromDate(startDate),

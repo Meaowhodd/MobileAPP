@@ -23,7 +23,6 @@ import { auth, db } from "../../firebaseConfig";
 
 const PRIMARY = "#6C63FF";
 
-// 4 slot มาตรฐาน
 const BASE_SLOTS = [
   { id: "S1", label: "08.00 - 10.00", start: 8, end: 10 },
   { id: "S2", label: "10.00 - 12.00", start: 10, end: 12 },
@@ -57,16 +56,11 @@ function slotDateRange(dateString, slotId) {
 export default function RoomCalendar() {
   const [selectedDate, setSelectedDate] = useState(toYMD(new Date()));
   const [rooms, setRooms] = useState([]);
-
-  // map ห้อง -> Set(slotId) ที่ถูกจองแล้วในวันนั้น
   const [bookedMap, setBookedMap] = useState(new Map());
-
-  // auth state
   const [uid, setUid] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [errText, setErrText] = useState("");
 
-  // ===== รอ Auth พร้อม =====
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       setUid(user?.uid || null);
@@ -75,7 +69,6 @@ export default function RoomCalendar() {
     return () => unsub();
   }, []);
 
-  // ===== rooms realtime (rooms อ่านได้ public ตาม rules) =====
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "rooms"),
@@ -90,19 +83,17 @@ export default function RoomCalendar() {
     return unsub;
   }, []);
 
-  // ===== bookings ของวันที่เลือก (ต้องล็อกอินตาม rules) =====
   useEffect(() => {
-    // ถ้ายังไม่ได้ evaluate auth หรือไม่มี user -> ไม่ subscribe bookings
+    
     if (!authReady) return;
 
-    // ถ้าไม่ได้ล็อกอิน: เคลียร์ข้อมูล bookings และแจ้งเตือนแบบอ่อน ๆ (ไม่โยน error)
     if (!uid) {
       setBookedMap(new Map());
       setErrText("โปรดเข้าสู่ระบบเพื่อดูความว่างของห้องตามช่วงเวลา");
       return;
     }
 
-    setErrText(""); // เคลียร์ error เดิม ๆ
+    setErrText(""); 
     const { start, end } = dayRange(selectedDate);
     const startTs = Timestamp.fromDate(start);
     const endTs = Timestamp.fromDate(end);
@@ -111,7 +102,6 @@ export default function RoomCalendar() {
       collection(db, "bookings"),
       where("slotStart", ">=", startTs),
       where("slotStart", "<=", endTs),
-      // ใช้สถานะที่กิน slot: approved, in_use, pending
       where("status", "in", ["approved", "in_use", "pending"])
     );
 
@@ -131,7 +121,6 @@ export default function RoomCalendar() {
       },
       (err) => {
         console.error("bookings onSnapshot:", err);
-        // มักเกิดจากไม่ได้สิทธิ์ (ยังไม่ล็อกอิน) หรือ rules
         setErrText("เข้าถึงข้อมูลการจองไม่ได้ (ตรวจสอบการเข้าสู่ระบบ/สิทธิ์)");
       }
     );
@@ -139,7 +128,6 @@ export default function RoomCalendar() {
     return unsub;
   }, [authReady, uid, selectedDate]);
 
-  // ===== คำนวณห้องว่างของวัน =====
   const roomsOfDay = useMemo(() => {
     if (!selectedDate) return [];
 
@@ -157,12 +145,10 @@ export default function RoomCalendar() {
 
       let freeSlots = BASE_SLOTS.filter((s) => !bookedForThisRoom.has(s.id));
 
-      // วันอดีต -> ปิดหมด
       if (isPastDay) {
         freeSlots = [];
       }
 
-      // วันนี้ -> ไม่แสดงช่วงที่สิ้นสุดไปแล้ว
       if (isToday) {
         freeSlots = freeSlots.filter((s) => {
           const { end } = slotDateRange(selectedDate, s.id);

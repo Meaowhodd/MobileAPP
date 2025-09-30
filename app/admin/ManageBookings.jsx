@@ -25,7 +25,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
-/* ===== Helpers ===== */
 const fmtDate = (row) => {
   if (row?.date) return row.date;
   const ts = row?.slotStart?.toDate?.() ? row.slotStart.toDate() : null;
@@ -56,17 +55,16 @@ export default function ManageBookings() {
   const router = useRouter();
 
   const [bookings, setBookings] = useState([]);
-  const [usersMap, setUsersMap] = useState({}); // userId -> "ชื่อ นามสกุล"
+  const [usersMap, setUsersMap] = useState({}); 
 
   // Confirm modal (approve/reject)
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [actionType, setActionType] = useState(null); // "approve" | "reject"
+  const [actionType, setActionType] = useState(null); 
   const [selected, setSelected] = useState(null);
 
   // Details modal (view)
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // subscribe users + bookings realtime
   useFocusEffect(
     useCallback(() => {
       const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
@@ -94,10 +92,9 @@ export default function ManageBookings() {
     }, [])
   );
 
-  /* ===== Actions ===== */
   const openConfirm = (bk, type) => {
     setSelected(bk);
-    setActionType(type); // "approve" | "reject"
+    setActionType(type); 
     setConfirmOpen(true);
   };
   const closeConfirm = () => {
@@ -115,7 +112,6 @@ export default function ManageBookings() {
     setSelected(null);
   };
 
-  // ➜ สร้าง Notification ให้ผู้ใช้ (ตอนอนุมัติ/ปฏิเสธ)
   async function pushUserNotification({ userId, booking, newStatus }) {
     if (!userId) return;
     const roomName = booking.roomName || booking.room || booking.roomId || "-";
@@ -136,7 +132,7 @@ export default function ManageBookings() {
       roomCode,
       slotStart: booking.slotStart,
       slotEnd: booking.slotEnd,
-      status: newStatus, // "approved" | "rejected"
+      status: newStatus, 
     });
   }
 
@@ -145,10 +141,8 @@ export default function ManageBookings() {
     const newStatus = actionType === "approve" ? "approved" : "rejected";
 
     try {
-      // 1) อัปเดตสถานะ booking
       await updateDoc(doc(db, "bookings", selected.id), { status: newStatus });
 
-      // 2) แจ้งเตือนไปยังเจ้าของ
       await pushUserNotification({
         userId: selected.userId,
         booking: selected,
@@ -414,7 +408,6 @@ export default function ManageBookings() {
   );
 }
 
-/* ===== Small row ===== */
 function DetailRow({ label, value }) {
   return (
     <View style={{ marginTop: 8 }}>
@@ -424,7 +417,6 @@ function DetailRow({ label, value }) {
   );
 }
 
-/* ===== Styles ===== */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
@@ -440,7 +432,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "white", marginBottom: 5 },
 
-  // ปุ่ม History ด้านขวา
   historyBtn: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 10,
@@ -497,8 +488,8 @@ const styles = StyleSheet.create({
   btn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, marginRight: 5 },
   btnGhost: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#6A5AE0" },
   btnPrimary: { backgroundColor: "#6A5AE0" },
-  btnApprove: { backgroundColor: "#3fde79ff" }, // เขียว
-  btnReject: { backgroundColor: "#ef4444" }, // แดง
+  btnApprove: { backgroundColor: "#3fde79ff" }, 
+  btnReject: { backgroundColor: "#ef4444" },
   btnText: { fontSize: 14, fontWeight: "700" },
 
   detailLabel: { fontSize: 12, color: "#666" },

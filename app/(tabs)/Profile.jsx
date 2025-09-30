@@ -33,7 +33,6 @@ export default function ProfileScreen() {
         setLoading(false);
         return;
       }
-      // subscribe realtime ที่ users/{uid}
       const ref = doc(db, "users", uid);
       unsub = onSnapshot(
         ref,
@@ -76,17 +75,14 @@ export default function ProfileScreen() {
   const email = auth.currentUser?.email || userDoc?.email || "—";
   const phone = userDoc?.phone || auth.currentUser?.phoneNumber || "—";
 
-  // dob อาจเก็บเป็น string หรือ Firestore Timestamp
   const dob = useMemo(() => {
     const val = userDoc?.dob;
     if (!val) return "—";
     try {
-      // ถ้าเป็น timestamp (มี toDate)
       if (val?.toDate) {
         const d = val.toDate();
         return d.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
       }
-      // ถ้าเป็น string อยู่แล้ว
       return String(val);
     } catch {
       return String(val);
@@ -103,7 +99,7 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.replace("/screens/Login"); // ปรับเส้นทางให้ตรงโปรเจ็กต์คุณ
+      router.replace("/screens/Login");
     } catch (e) {
       console.error("signOut error:", e);
       Alert.alert("ออกจากระบบไม่สำเร็จ", "ลองใหม่อีกครั้ง");
@@ -112,10 +108,8 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>My Profile</Text>
-        {/* ปุ่ม Logout มุมขวา */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={27} color="#fbf6f6ff" />
         </TouchableOpacity>
@@ -130,7 +124,6 @@ export default function ProfileScreen() {
           contentContainerStyle={{ paddingVertical: 20 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-          {/* Avatar + Name */}
           <View style={{ alignItems: "center" }}>
             <View style={styles.profileImageContainer}>
               <Image source={{ uri: photo }} style={styles.profileImage} />
@@ -138,7 +131,6 @@ export default function ProfileScreen() {
             <Text style={styles.nameText}>{fullName}</Text>
           </View>
 
-          {/* Info Fields */}
           <View style={{ marginTop: 30 }}>
             <Text style={styles.label}>First Name</Text>
             <View style={styles.contentBox}>
@@ -168,14 +160,12 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Edit Button */}
           <TouchableOpacity
             style={styles.editButton}
             onPress={() =>
               router.push({
                 pathname: "/screens/ProfileStack/ProfileSettingScreen",
                 params: {
-                  // ส่งค่าปัจจุบันไปหน้าแก้ไข
                   firstName: userDoc?.firstName || "",
                   lastName: userDoc?.lastName || "",
                   phone: userDoc?.phone || "",

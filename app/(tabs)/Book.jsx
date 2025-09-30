@@ -42,11 +42,11 @@ const COLOR = {
   chipActive: "#ECE9FF",
   cancelBtn: "#3E3E3E",
   // status colors
-  pending: "#F59E0B", // ส้ม
-  approved: "#10B981", // เขียว
-  completed: "#3B82F6", // น้ำเงิน
-  canceled: "#EF4444", // แดง
-  rejected: "#DC2626", // แดงเข้ม
+  pending: "#F59E0B", 
+  approved: "#10B981", 
+  completed: "#3B82F6", 
+  canceled: "#EF4444", 
+  rejected: "#DC2626", 
 };
 
 const chunk = (arr, size) => {
@@ -55,7 +55,6 @@ const chunk = (arr, size) => {
   return out;
 };
 
-/** เติมข้อมูลห้องให้ booking ชุดหนึ่ง (คืน array ใหม่) */
 async function hydrateRooms(items) {
   if (!items.length) return [];
 
@@ -68,7 +67,6 @@ async function hydrateRooms(items) {
   );
 
   const roomMap = new Map();
-  // by document id
   for (const ids of chunk(idKeys, 10)) {
     const qRooms = query(collection(db, "rooms"), where("__name__", "in", ids));
     const rs = await getDocs(qRooms);
@@ -102,16 +100,10 @@ async function hydrateRooms(items) {
   });
 }
 
-/** อัปเดต bookings ที่หมดเวลา + ส่ง notifications:
- * - approved -> completed (type: booking_completed)
- * - pending  -> rejected  (type: booking_rejected)
- * ทำฝั่ง client (จะทำงานเมื่อเปิดหน้า/โฟกัสเท่านั้น)
- */
 async function autoCompleteOverdue(uid) {
   if (!uid) return;
   const now = new Date();
 
-  // 1) approved ที่หมดเวลา -> completed
   {
     let lastDoc = null;
     while (true) {
@@ -130,9 +122,9 @@ async function autoCompleteOverdue(uid) {
       const batch = writeBatch(db);
       snap.forEach((ds) => {
         const d = ds.data();
-        // update booking
+  
         batch.update(ds.ref, { status: "completed", updatedAt: new Date() });
-        // add notification
+   
         const nref = doc(collection(db, "users", uid, "notifications"));
         batch.set(nref, {
           type: "booking_completed",
@@ -154,7 +146,6 @@ async function autoCompleteOverdue(uid) {
     }
   }
 
-  // 2) pending ที่หมดเวลา -> rejected
   {
     let lastDoc = null;
     while (true) {
@@ -173,9 +164,7 @@ async function autoCompleteOverdue(uid) {
       const batch = writeBatch(db);
       snap.forEach((ds) => {
         const d = ds.data();
-        // update booking
         batch.update(ds.ref, { status: "rejected", updatedAt: new Date() });
-        // add notification
         const nref = doc(collection(db, "users", uid, "notifications"));
         batch.set(nref, {
           type: "booking_rejected",
@@ -200,9 +189,8 @@ async function autoCompleteOverdue(uid) {
 
 export default function Book() {
   const router = useRouter();
-  const [tab, setTab] = useState("operation"); // operation | completed | canceled
+  const [tab, setTab] = useState("operation"); 
 
-  // รอ Auth พร้อม
   const [uid, setUid] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   useEffect(() => {
@@ -217,14 +205,12 @@ export default function Book() {
   const [approvedBookings, setApprovedBookings] = useState([]);
   const [completedBookings, setCompletedBookings] = useState([]);
   const [canceledBookings, setCanceledBookings] = useState([]);
-  const [rejectedBookings, setRejectedBookings] = useState([]); // ใหม่
+  const [rejectedBookings, setRejectedBookings] = useState([]); 
   const [loading, setLoading] = useState(true);
 
-  // สำหรับ confirm cancel
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  // Subscribe Firestore หลัง auth พร้อม + uid มีค่า
   useEffect(() => {
     if (!authReady) return;
 
@@ -289,7 +275,6 @@ export default function Book() {
       onErr
     );
 
-    // listen สถานะ rejected (ใหม่)
     const unsubRejected = onSnapshot(
       base("rejected"),
       async (snap) => {
@@ -308,7 +293,6 @@ export default function Book() {
     };
   }, [authReady, uid]);
 
-  // เรียก auto-complete/reject เมื่อเข้าหน้า/โฟกัส + ทุก ๆ 1 นาที
   useFocusEffect(
     useCallback(() => {
       if (!uid) return;
@@ -320,7 +304,6 @@ export default function Book() {
 
   const now = new Date();
 
-  // Operation = pending + approved ที่ยังไม่หมดเวลา
   const opBookings = useMemo(() => {
     const merged = [...pendingBookings, ...approvedBookings].filter((b) => {
       const end = b.slotEnd?.toDate?.() ?? new Date(b.slotEnd);
@@ -334,7 +317,6 @@ export default function Book() {
     return merged;
   }, [pendingBookings, approvedBookings, now]);
 
-  // Completed แสดง: completed จริงใน DB + approved ที่หมดเวลา
   const completedInstant = useMemo(() => {
     const overdueApproved = [...approvedBookings].filter((b) => {
       const end = b.slotEnd?.toDate?.() ?? new Date(b.slotEnd);
@@ -351,7 +333,6 @@ export default function Book() {
     return deduped;
   }, [approvedBookings, completedBookings, now]);
 
-  // แท็บ Canceled รวม canceled + rejected
   const canceledPlusRejected = useMemo(() => {
     const merged = [...canceledBookings, ...rejectedBookings];
     const m = new Map(merged.map((x) => [x.id, x]));
@@ -365,7 +346,7 @@ export default function Book() {
   const listToShow = useMemo(() => {
     if (tab === "operation") return opBookings;
     if (tab === "completed") return completedInstant;
-    return canceledPlusRejected; // "canceled" tab
+    return canceledPlusRejected; 
   }, [tab, opBookings, completedInstant, canceledPlusRejected]);
 
   const fmtDate = (d) =>
@@ -392,7 +373,6 @@ export default function Book() {
     setConfirmOpen(false);
   }
 
-  // ยกเลิก + เพิ่ม notification ให้ user
   async function applyCancel() {
     if (!selected) return;
     try {
@@ -639,7 +619,6 @@ const styles = StyleSheet.create({
   },
   cancelText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 
-  // modal
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",

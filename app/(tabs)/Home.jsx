@@ -1,4 +1,3 @@
-// app/(tabs)/Home.jsx
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
@@ -26,7 +25,6 @@ import { auth, db } from "../../firebaseConfig";
 
 const PRIMARY = "#6C63FF";
 
-// 4 ช่วงเวลามาตรฐานของวัน
 const BASE_SLOTS = [
   { id: "S1", startHour: 8, endHour: 10 },
   { id: "S2", startHour: 10, endHour: 12 },
@@ -44,7 +42,6 @@ function endOfToday() {
   d.setHours(23, 59, 59, 999);
   return d;
 }
-// slot ที่ยังเหลืออยู่ (ตัดทิ้ง slot ที่สิ้นสุดไปแล้ว)
 function remainingSlotIds(now = new Date()) {
   const ids = [];
   BASE_SLOTS.forEach((s) => {
@@ -60,11 +57,8 @@ export default function HomeScreen() {
   const [favIds, setFavIds] = useState(new Set());
   const [queryText, setQueryText] = useState("");
   const [avatar, setAvatar] = useState(null);
-
-  // bookings วันนี้: roomId -> Set(slotId ที่ถูกจอง)
   const [bookedTodayMap, setBookedTodayMap] = useState(new Map());
 
-  // rooms realtime
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "rooms"),
@@ -74,7 +68,6 @@ export default function HomeScreen() {
     return unsub;
   }, []);
 
-  // favorites realtime
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -86,7 +79,6 @@ export default function HomeScreen() {
     return unsub;
   }, []);
 
-  // avatar realtime
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -101,7 +93,6 @@ export default function HomeScreen() {
     return unsub;
   }, []);
 
-  // ✅ subscribe bookings ของ "วันนี้" (approved/in_use/pending)
   useEffect(() => {
     const start = Timestamp.fromDate(startOfToday());
     const end = Timestamp.fromDate(endOfToday());
@@ -118,7 +109,7 @@ export default function HomeScreen() {
         const map = new Map();
         snap.forEach((ds) => {
           const b = ds.data();
-          const rId = b.roomId || b.room || b.roomCode; // รองรับหลายฟิลด์
+          const rId = b.roomId || b.room || b.roomCode;
           const sId = b.slotId;
           if (!rId || !sId) return;
           if (!map.has(rId)) map.set(rId, new Set());
@@ -128,36 +119,32 @@ export default function HomeScreen() {
       },
       (err) => {
         console.error("bookings(today) onSnapshot:", err);
-        setBookedTodayMap(new Map()); // ไม่บังคับ fail
+        setBookedTodayMap(new Map());
       }
     );
     return unsub;
   }, []);
 
-  // helper: ห้องยัง “ว่างจองได้วันนี้ไหม” (มี slot ที่ยังไม่ผ่านเวลาและไม่ถูกจองเหลืออยู่)
   function isRoomAvailableToday(room) {
     const now = new Date();
     const remain = remainingSlotIds(now);
-    if (remain.length === 0) return false; // วันนี้หมดแล้ว
-
+    if (remain.length === 0) return false;
     const bookedSet = bookedTodayMap.get(room.id) || new Set();
     const allRemainingBooked = remain.every((sid) => bookedSet.has(sid));
     return !allRemainingBooked;
   }
 
-  // stats (ใช้แค่แสดงผล, ไม่ไปล็อกการจอง)
   const stats = useMemo(() => {
     const all = rooms.length;
     const now = new Date();
     const remain = remainingSlotIds(now);
     if (remain.length === 0) {
-      return { available: 0, all, closed: true }; // เลยช่วงสุดท้ายแล้ว = Closed
+      return { available: 0, all, closed: true };
     }
     const available = rooms.filter((r) => isRoomAvailableToday(r)).length;
     return { available, all, closed: available === 0 };
   }, [rooms, bookedTodayMap]);
 
-  // filter + sort (ไม่ใช้ availableToday ใน UI, ใช้เฉพาะคำนวณ stats)
   const visibleRooms = useMemo(() => {
     const q = queryText.trim().toLowerCase();
     const withLiked = rooms.map((r) => ({ ...r, liked: favIds.has(r.id) }));
@@ -172,7 +159,6 @@ export default function HomeScreen() {
     });
   }, [rooms, favIds, queryText]);
 
-  // toggle favorite
   const toggleLike = async (roomId, isLiked) => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -200,7 +186,6 @@ export default function HomeScreen() {
         source={typeof item.image === "string" ? { uri: item.image } : item.image}
         style={styles.cardImage}
       />
-
       <View style={styles.cardBody}>
         <View style={styles.titleRow}>
           <Text style={styles.cardTitle} numberOfLines={1}>
@@ -214,11 +199,9 @@ export default function HomeScreen() {
             />
           </TouchableOpacity>
         </View>
-
         <View style={styles.metaRow}>
           <Text style={styles.metaValue}>ROOM {item.code}</Text>
         </View>
-
         <View style={styles.metaRow}>
           <MaterialIcons name="groups" size={20} style={styles.metaIcon} />
           <Text style={styles.metaValue}>
@@ -228,12 +211,10 @@ export default function HomeScreen() {
               : item.people || "—"}
           </Text>
         </View>
-
         <View style={styles.metaRow}>
           <MaterialIcons name="stairs" size={20} style={styles.metaIcon} />
           <Text style={styles.metaValue}>ชั้น {item.floor ?? "-"}</Text>
         </View>
-
         <View style={styles.footerRow}>
           <View style={{ flex: 1 }} />
           <TouchableOpacity
@@ -261,11 +242,8 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-
         <Text style={styles.headerTitle}>Meeting Rooms</Text>
-
         <View style={styles.searchWrap}>
           <Ionicons name="search" size={18} color="#6b7280" style={{ marginRight: 6 }} />
           <TextInput
@@ -277,8 +255,6 @@ export default function HomeScreen() {
           />
         </View>
       </View>
-
-      {/* Stats — ใช้เฉพาะแสดง ไม่ล็อค booking */}
       <View className="statsRow" style={styles.statsRow}>
         <StatCard
           title="Room available today"
@@ -286,7 +262,6 @@ export default function HomeScreen() {
         />
         <StatCard title="All rooms" value={String(stats.all)} />
       </View>
-
       <View
         style={{
           flexDirection: "row",
@@ -300,8 +275,6 @@ export default function HomeScreen() {
           <MaterialIcons name="calendar-month" size={30} style={styles.metaIcon} />
         </TouchableOpacity>
       </View>
-
-      {/* List */}
       <FlatList
         data={visibleRooms}
         keyExtractor={(item) => item.id}
@@ -325,7 +298,6 @@ function StatCard({ title, value }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-
   header: {
     backgroundColor: PRIMARY,
     borderBottomLeftRadius: 16,
@@ -348,7 +320,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#00000055",
   },
-
   headerTitle: {
     color: "#fff",
     fontSize: 26,
@@ -356,7 +327,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 20,
   },
-
   searchWrap: {
     marginTop: 10,
     marginHorizontal: 16,
@@ -375,7 +345,6 @@ const styles = StyleSheet.create({
     borderColor: "#d7def3",
   },
   searchInput: { flex: 1, fontSize: 15, color: "#1F2937" },
-
   statsRow: {
     flexDirection: "row",
     gap: 12,
@@ -392,7 +361,6 @@ const styles = StyleSheet.create({
   },
   statTitle: { color: "#6b6f76", fontSize: 12, marginBottom: 6 },
   statValue: { fontSize: 24, fontWeight: "800", color: "#6C63FF" },
-
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -430,7 +398,6 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
   metaValue: { fontSize: 13, color: "#2b2d31" },
   metaIcon: { color: "#4a4a4a", marginRight: 6 },
-
   footerRow: {
     marginTop: 8,
     flexDirection: "row",

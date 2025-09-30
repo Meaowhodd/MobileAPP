@@ -18,18 +18,16 @@ import {
 import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
-/** ใช้ค่าเดียวกับ AddRoomForm */
 const CLOUD_NAME = "dlknbn6pd";
-const UPLOAD_PRESET = "unsigned_rooms"; // ต้องเป็น unsigned preset
+const UPLOAD_PRESET = "unsigned_rooms"; 
 
 export default function EditRoomForm() {
   const router = useRouter();
-  const { id } = useLocalSearchParams(); // /admin/EditRoomForm?id=<roomId>
+  const { id } = useLocalSearchParams(); 
 
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // โหลดข้อมูลห้องเดิม
   useEffect(() => {
     const fetchRoom = async () => {
       try {
@@ -52,9 +50,7 @@ export default function EditRoomForm() {
           bestFor: data.bestFor ?? "",
           atmosphere: data.atmosphere ?? "",
           image: data.image ?? "",
-          // ธงบอกว่าเป็นรูปใหม่จากเครื่องหรือไม่
           isLocal: false,
-          // เก็บ base64 ไว้ใช้ตอนอัปโหลด (ถ้ามี)
           _base64: null,
         });
       } catch (err) {
@@ -66,7 +62,6 @@ export default function EditRoomForm() {
     if (id) fetchRoom();
   }, [id]);
 
-  // เลือกรูป (ดึง base64 มาด้วย)
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -79,24 +74,21 @@ export default function EditRoomForm() {
       const asset = result.assets[0];
       setRoom((s) => ({
         ...s,
-        image: asset.uri, // สำหรับ preview
+        image: asset.uri, 
         _base64: asset.base64 || null,
         isLocal: true,
       }));
     }
   };
 
-  // อัปโหลดขึ้น Cloudinary (รองรับ web/native + base64)
   const uploadToCloudinary = async (localUri, base64Opt) => {
     const form = new FormData();
     form.append("upload_preset", UPLOAD_PRESET);
 
     if (base64Opt) {
-      // data URL ทางลัด ชัวร์สุด
       form.append("file", `data:image/jpeg;base64,${base64Opt}`);
     } else if (localUri) {
       if (Platform.OS === "web") {
-        // บนเว็บ ต้องแปลง blob:... เป็น Blob ก่อน
         const res = await fetch(localUri);
         if (!res.ok) throw new Error(`อ่านไฟล์จาก uri ไม่ได้: ${res.status}`);
         const blob = await res.blob();
@@ -104,7 +96,6 @@ export default function EditRoomForm() {
           (localUri.split("/").pop() || `room_${Date.now()}`) + guessExt(blob.type);
         form.append("file", blob, name);
       } else {
-        // บน native แนบเป็นไฟล์จาก uri ได้เลย
         form.append("file", {
           uri: localUri,
           name: "room.jpg",
@@ -115,7 +106,6 @@ export default function EditRoomForm() {
       throw new Error("ไม่มีรูปสำหรับอัปโหลด");
     }
 
-    // ห้ามตั้ง Content-Type เอง ให้ fetch จัดการ boundary
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
       { method: "POST", body: form }
@@ -212,7 +202,7 @@ export default function EditRoomForm() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {/* Upload รูป */}
+        {/* Upload */}
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
           {room.image ? (
             <Image source={{ uri: room.image }} style={styles.roomImage} />
@@ -331,7 +321,6 @@ export default function EditRoomForm() {
   );
 }
 
-/* ===== Styles ให้เหมือน AddRoomForm ล่าสุด ===== */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {

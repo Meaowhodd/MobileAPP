@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 
-import { useFocusEffect } from "@react-navigation/native"; // ✅ refresh on focus
+import { useFocusEffect } from "@react-navigation/native";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
@@ -29,14 +29,13 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
-import { UI } from "../services/notifications"; // mapping สี/อีโมจิ/แถบซ้าย
+import { UI } from "../services/notifications";
 
 dayjs.extend(relativeTime);
 dayjs.locale("th");
 
 const PAGE_SIZE = 10;
 
-/* ---------- utils ---------- */
 function toDate(x) {
   if (!x) return null;
   if (typeof x?.toDate === "function") return x.toDate();
@@ -52,7 +51,6 @@ function buildTitleFromType(n) {
     default:                  return "ประกาศจากระบบ";
   }
 }
-// แสดงห้อง + วันที่ + ช่วงเวลา (สถานะแสดงเป็นตัวอักษรสีภายหลัง)
 function buildDescBase(n) {
   const start = n.slotStart ? toDate(n.slotStart) : null;
   const end   = n.slotEnd ? toDate(n.slotEnd) : null;
@@ -65,7 +63,6 @@ function buildDescBase(n) {
 
   return `จอง ${room} • ${dd} • ${range}`;
 }
-// เดา status ถ้าเอกสารไม่ได้ส่งมา
 function inferStatus(n) {
   if (n.status) return n.status;
   switch (n.type) {
@@ -76,7 +73,6 @@ function inferStatus(n) {
   }
 }
 
-/* ---------- swipe actions ---------- */
 function RightActions({ onRead, onDelete }) {
   return (
     <View style={{ flexDirection: "row" }}>
@@ -90,7 +86,6 @@ function RightActions({ onRead, onDelete }) {
   );
 }
 
-/* ---------- item ---------- */
 function NotificationItem({ item, onPress }) {
   const type = item.type || "system_notice";
   const leftColor = UI.LEFT_BAR[type] || "#E5E7EB";
@@ -121,8 +116,6 @@ function NotificationItem({ item, onPress }) {
 
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{title}</Text>
-
-          {/* คำอธิบาย + สถานะเป็นตัวอักษรสี */}
           <Text style={styles.desc} numberOfLines={2}>
             {base}
             {style && (
@@ -132,7 +125,6 @@ function NotificationItem({ item, onPress }) {
               </Text>
             )}
           </Text>
-
           <Text style={styles.timeText}>
             {item.createdAt ? dayjs(toDate(item.createdAt)).fromNow() : ""}
           </Text>
@@ -142,7 +134,6 @@ function NotificationItem({ item, onPress }) {
   );
 }
 
-/* ---------- screen ---------- */
 export default function InboxScreen({ navigation }) {
   const [uid, setUid] = useState(null);
   const [data, setData] = useState([]);
@@ -151,28 +142,23 @@ export default function InboxScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
   const lastDocRef = useRef(null);
 
-  // confirm modal state
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmType, setConfirmType] = useState(null); // "clearAll" | "deleteOne"
+  const [confirmType, setConfirmType] = useState(null);
   const [targetId, setTargetId] = useState(null);
 
-  // auth
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => setUid(user?.uid || null));
     return () => unsub();
   }, []);
 
-  // init (ครั้งแรก)
   useEffect(() => { if (uid) refreshFirstPage(); }, [uid]);
 
-  // ✅ refresh ทุกครั้งที่โฟกัสหน้านี้
   useFocusEffect(
     useCallback(() => {
       if (uid) refreshFirstPage();
     }, [uid])
   );
 
-  // badge
   const unreadCount = useMemo(() => data.filter((d) => !d.read).length, [data]);
   useEffect(() => {
     navigation?.getParent?.()?.setOptions?.({
@@ -180,7 +166,6 @@ export default function InboxScreen({ navigation }) {
     });
   }, [unreadCount, navigation]);
 
-  // base query
   const qBase = useCallback(() => {
     if (!uid) return null;
     return query(
@@ -189,7 +174,6 @@ export default function InboxScreen({ navigation }) {
     );
   }, [uid]);
 
-  // fetchers
   const refreshFirstPage = useCallback(async () => {
     if (!qBase()) return;
     setRefreshing(true);
@@ -227,7 +211,6 @@ export default function InboxScreen({ navigation }) {
     setLoadingMore(false);
   }, [qBase, loadingMore, hasMore]);
 
-  // actions
   const markAllRead = useCallback(async () => {
     if (!uid || !data.length) return;
     const unread = data.filter((n) => !n.read);
@@ -269,14 +252,12 @@ export default function InboxScreen({ navigation }) {
 
   const removeItem = useCallback(async (id) => {
     if (!uid) return;
-    // optimistic
     const keep = data.filter((n) => n.id !== id);
     setData(keep);
     try {
       await deleteDoc(doc(db, "users", uid, "notifications", id));
     } catch (e) {
       console.warn("Delete one failed:", e?.message || e);
-      // rollback & refresh
       setData((prev) =>
         prev.some((n) => n.id === id) ? prev : [...keep, data.find((n) => n.id === id)].filter(Boolean)
       );
@@ -284,7 +265,6 @@ export default function InboxScreen({ navigation }) {
     }
   }, [uid, data, refreshFirstPage]);
 
-  // confirm modal handlers
   const openConfirm = (type, id = null) => {
     setConfirmType(type);
     setTargetId(id);
@@ -304,7 +284,6 @@ export default function InboxScreen({ navigation }) {
     closeConfirm();
   };
 
-  // render
   const renderItem = ({ item }) => (
     <Swipeable
       renderRightActions={() => (
@@ -320,7 +299,6 @@ export default function InboxScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header ม่วงโค้งมน (ไม่มี back/วงกลม) */}
       <View style={styles.topBar}>
         <Text style={styles.topTitle}>Notifications</Text>
         <TouchableOpacity
@@ -333,7 +311,6 @@ export default function InboxScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Sub header */}
       <View style={styles.subHeader}>
         <Text style={styles.recent}>Recent {unreadCount > 0 ? `(${unreadCount} new)` : ""}</Text>
         <TouchableOpacity onPress={markAllRead}>
@@ -341,7 +318,6 @@ export default function InboxScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* List */}
       <FlatList
         contentContainerStyle={styles.listContent}
         data={data}
@@ -358,7 +334,6 @@ export default function InboxScreen({ navigation }) {
         }
       />
 
-      {/* ===== Confirm Modal (สไตล์เดียวกับ ManageBookings) ===== */}
       <Modal transparent visible={confirmOpen} animationType="fade" onRequestClose={closeConfirm}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -392,7 +367,6 @@ export default function InboxScreen({ navigation }) {
   );
 }
 
-/* ---------- styles ---------- */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
@@ -458,7 +432,6 @@ const styles = StyleSheet.create({
   emptyBox: { alignItems: "center", paddingTop: 60 },
   emptyDesc: { color: "#666" },
 
-  // swipe buttons
   swipeRead: {
     paddingVertical: 16,
     paddingHorizontal: 18,
@@ -476,7 +449,6 @@ const styles = StyleSheet.create({
   },
   swipeDeleteText: { color: "#fff", fontWeight: "600" },
 
-  // modal (สไตล์เดียวกับ ManageBookings)
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,.35)",

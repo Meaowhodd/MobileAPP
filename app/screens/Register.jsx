@@ -36,22 +36,19 @@ export default function RegisterScreen() {
     try {
       setLoading(true);
 
-      // 1) สมัครผู้ใช้
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = cred.user;
 
-      // 2) ตั้ง displayName = "First Last"
       await updateProfile(user, { displayName: `${firstName.trim()} ${lastName.trim()}` });
 
-      // 3) สร้างเอกสาร users/{uid}
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         role: "student",
-        phone: "",      // ✅ ค่าเริ่มต้นว่าง
-        dob: "",        // ✅ ค่าเริ่มต้นว่าง
-        photoUrl: "",   // ✅ ค่าเริ่มต้นว่าง
+        phone: "",      
+        dob: "",       
+        photoUrl: "",   
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -165,7 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
 
-  // input base
   input: {
     backgroundColor: "rgba(255,255,255,0.2)",
     color: "white",
@@ -174,7 +170,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // name row
   nameRowOneLine: {
     flexDirection: "row",
     alignItems: "center",
@@ -187,7 +182,6 @@ const styles = StyleSheet.create({
   },
   nameLeft: { marginRight: 10 },
 
-  // password
   passwordBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -198,7 +192,6 @@ const styles = StyleSheet.create({
   },
   passwordInput: { flex: 1, color: "white", paddingVertical: 12 },
 
-  // button
   signupBtn: {
     backgroundColor: "#FFD700",
     padding: 15,
@@ -210,7 +203,6 @@ const styles = StyleSheet.create({
   loginText: { color: "white", textAlign: "center", marginBottom: 20 },
   loginLink: { color: "#FFD700", fontWeight: "bold" },
 
-  // divider & socials
   divider: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   line: { flex: 1, height: 1, backgroundColor: "#aaa" },
   orText: { color: "#ddd", marginHorizontal: 10 },

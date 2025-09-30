@@ -2,23 +2,23 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-    collection,
-    deleteDoc,
-    doc,
-    onSnapshot,
-    orderBy,
-    query,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
 } from "firebase/firestore";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { db } from "../../firebaseConfig";
 
@@ -54,9 +54,8 @@ function statusColor(s) {
 export default function BookingsHistory() {
   const router = useRouter();
   const [bookings, setBookings] = useState([]);
-  const [usersMap, setUsersMap] = useState({}); // userId -> {firstName,lastName,email,userName}
+  const [usersMap, setUsersMap] = useState({}); 
 
-  // === subscribe bookings ทั้งหมด (เรียงล่าสุดก่อน)
   useEffect(() => {
     const qRef = query(collection(db, "bookings"), orderBy("slotStart", "desc"));
     const unsub = onSnapshot(qRef, (snap) => {
@@ -66,7 +65,6 @@ export default function BookingsHistory() {
     return unsub;
   }, []);
 
-  // === subscribe users เพื่อดึงชื่อ firstName + lastName
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
       const map = {};
@@ -84,7 +82,6 @@ export default function BookingsHistory() {
     return unsub;
   }, []);
 
-  // === group + count
   const groups = useMemo(() => {
     const all = bookings;
     const pending = bookings.filter(
@@ -102,7 +99,6 @@ export default function BookingsHistory() {
     return { all, pending, approved, rejected, canceled };
   }, [bookings]);
 
-  // === tabs (สวยขึ้น + indicator เลื่อนได้)
   const tabs = [
     { key: "all", label: "All" },
     { key: "pending", label: "Pending" },
@@ -179,7 +175,6 @@ export default function BookingsHistory() {
     );
   };
 
-  // ====== Delete (with confirm modal) ======
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [target, setTarget] = useState(null);
 
@@ -199,7 +194,6 @@ export default function BookingsHistory() {
     } catch (e) {
       console.error("delete failed:", e);
       closeConfirm();
-      // ไม่บล็อก UI ด้วย Alert; ถ้าต้องการก็ใส่ Alert.alert ได้
     }
   };
 
@@ -339,7 +333,6 @@ export default function BookingsHistory() {
   );
 }
 
-/* ================= styles ================= */
 const styles = StyleSheet.create({
   header: {
     backgroundColor: COLOR.primary,
@@ -454,7 +447,6 @@ const styles = StyleSheet.create({
   },
   deleteText: { marginLeft: 6, color: COLOR.danger, fontWeight: "800" },
 
-  // modal
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,.35)",

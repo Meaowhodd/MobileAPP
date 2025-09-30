@@ -30,7 +30,6 @@ export default function RoomDetail() {
       ? `${params.capacityMin}-${params.capacityMax} people`
       : params.people || "—";
 
-  // subscribe favorite ของห้องนี้ (per user)
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid || !roomId) return;
@@ -125,9 +124,8 @@ export default function RoomDetail() {
             activeOpacity={0.9}
             onPress={() =>
               router.push({
-                pathname: "/screens/Booking", // ใช้หน้า Booking ตามที่คุณระบุ
+                pathname: "/screens/Booking", 
                 params: {
-                  // ✅ ส่งครบทั้ง 5 ค่า
                   roomId: roomId,
                   roomName: String(params.roomName || params.name || ""),
                   roomCode: String(params.roomCode || params.code || ""),

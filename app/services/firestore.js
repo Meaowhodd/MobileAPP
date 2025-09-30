@@ -1,14 +1,13 @@
 // app/services/firestore.js
 import {
-    collection,
-    getDocs,
-    query,
-    Timestamp,
-    where,
+  collection,
+  getDocs,
+  query,
+  Timestamp,
+  where,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
-// ชี้ collection ที่ใช้บ่อย
 export const colRooms     = collection(db, "rooms");
 export const colUsers     = collection(db, "users");
 export const colBookings  = collection(db, "bookings");
@@ -28,10 +27,8 @@ export async function countActiveBookings(roomId, y, m, d, slotId) {
   const start = Timestamp.fromDate(new Date(y, m - 1, d, 0, 0, 0, 0));
   const end   = Timestamp.fromDate(new Date(y, m - 1, d, 23, 59, 59, 999));
 
-  // สถานะที่ถือว่ายึดช่องไว้
   const blockingStatuses = ["pending", "approved", "in_use"];
 
-  // Firestore query เป็น AND โดย default (ใส่ where ต่อกัน)
   const q = query(
     colBookings,
     where("roomId", "==", roomId),
@@ -42,5 +39,5 @@ export async function countActiveBookings(roomId, y, m, d, slotId) {
   );
 
   const snap = await getDocs(q);
-  return snap.size; // 0 = ว่าง, >0 = ไม่ว่าง
+  return snap.size; 
 }

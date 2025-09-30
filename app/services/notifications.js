@@ -1,12 +1,12 @@
 // app/services/notificationsUI.js
 export const UI = {
   LEFT_BAR: {
-    booking_confirmed: "#10B981",  // เขียว
-    booking_cancelled: "#EF4444",  // แดง
-    booking_updated:   "#F59E0B",  // ส้ม
-    meeting_reminder:  "#6366F1",  // ม่วง
-    booking_created:   "#3B82F6",  // น้ำเงิน
-    system_notice:     "#6B7280",  // เทาเข้ม
+    booking_confirmed: "#10B981", 
+    booking_cancelled: "#EF4444",  
+    booking_updated:   "#F59E0B",  
+    meeting_reminder:  "#6366F1",  
+    booking_created:   "#3B82F6",  
+    system_notice:     "#6B7280",  
   },
   ICON_BG: {
     booking_confirmed: "#D1FAE5",
@@ -24,12 +24,11 @@ export const UI = {
     booking_created:   "📌",
     system_notice:     "📢",
   },
-  // สีตัวอักษร/พื้นของ "สถานะ" (ใช้เฉพาะสีตัวอักษร fg)
   STATUS: {
-    pending:   { fg: "#B45309", bg: "#FEF3C7" }, // ส้มเข้ม
-    approved:  { fg: "#065F46", bg: "#D1FAE5" }, // เขียวเข้ม
-    completed: { fg: "#1E40AF", bg: "#DBEAFE" }, // น้ำเงินเข้ม
-    canceled:  { fg: "#991B1B", bg: "#FEE2E2" }, // แดงเข้ม
-    rejected:  { fg: "#991B1B", bg: "#FEE2E2" }, // แดงเข้ม
+    pending:   { fg: "#B45309", bg: "#FEF3C7" }, 
+    approved:  { fg: "#065F46", bg: "#D1FAE5" }, 
+    completed: { fg: "#1E40AF", bg: "#DBEAFE" }, 
+    canceled:  { fg: "#991B1B", bg: "#FEE2E2" }, 
+    rejected:  { fg: "#991B1B", bg: "#FEE2E2" }, 
   },
 };

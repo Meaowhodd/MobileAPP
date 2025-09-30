@@ -27,10 +27,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // state สำหรับ error UI
-  const [errorMsg, setErrorMsg] = useState("");        // แสดงเป็น banner
-  const [emailError, setEmailError] = useState("");    // ใต้ช่อง email
-  const [passError, setPassError] = useState("");      // ใต้ช่อง password
+  const [errorMsg, setErrorMsg] = useState("");     
+  const [emailError, setEmailError] = useState("");   
+  const [passError, setPassError] = useState("");      
 
   const showToast = (msg) => {
     if (Platform.OS === "android") ToastAndroid.show(msg, ToastAndroid.SHORT);
@@ -82,12 +81,11 @@ export default function LoginScreen() {
       console.error("login error:", err);
       const code = err?.code || "";
 
-      // map error → ข้อความไทย + ไฮไลต์ช่อง
       if (code === "auth/invalid-email") {
         setEmailError("รูปแบบอีเมลไม่ถูกต้อง");
         setErrorMsg("อีเมลไม่ถูกต้อง");
       } else if (
-        code === "auth/invalid-credential" || // v10 รวม wrong-password / user-not-found
+        code === "auth/invalid-credential" || 
         code === "auth/wrong-password" ||
         code === "auth/user-not-found"
       ) {
@@ -102,7 +100,6 @@ export default function LoginScreen() {
         setErrorMsg("ไม่สามารถเข้าสู่ระบบได้");
       }
 
-      // แจ้งเตือนสั้น ๆ เพิ่ม (toast/alert)
       showToast("เข้าสู่ระบบไม่สำเร็จ");
     } finally {
       setLoading(false);
@@ -198,7 +195,7 @@ export default function LoginScreen() {
         <View style={styles.line} />
       </View>
 
-      {/* Social (ยังไม่ได้เชื่อมจริง) */}
+      {/* Social*/}
       <View style={styles.socialRow}>
         <TouchableOpacity style={styles.socialBtn}>
           <Image source={{ uri: "https://img.icons8.com/color/48/google-logo.png" }} style={styles.socialIcon} />
@@ -229,7 +226,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 
-  // Error banner
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -243,7 +239,6 @@ const styles = StyleSheet.create({
   },
   errorBannerText: { color: "#991b1b", fontSize: 13, flex: 1 },
 
-  // Inputs
   input: {
     backgroundColor: "rgba(255,255,255,0.2)",
     color: "white",
@@ -271,13 +266,9 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   passwordInput: { flex: 1, color: "white", paddingVertical: 12 },
-
-  // Row
   row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
   remember: { color: "white" },
   reset: { color: "white", textDecorationLine: "underline" },
-
-  // Buttons
   signinBtn: {
     backgroundColor: "#FFD700",
     padding: 15,
@@ -286,8 +277,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   signinText: { color: "black", fontSize: 18, fontWeight: "bold" },
-
-  // Bottom
   signupText: { color: "white", textAlign: "center", marginBottom: 20 },
   signupLink: { color: "#FFD700", fontWeight: "bold" },
   divider: { flexDirection: "row", alignItems: "center", marginBottom: 20 },

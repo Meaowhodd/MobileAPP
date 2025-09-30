@@ -18,14 +18,12 @@ import {
 import { collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 
-// 🔴 ไม่มี guest แล้ว
 const ROLE_CHOICES = ["student", "admin"];
 
 export default function ManageUsers() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
 
-  // edit modal
   const [visible, setVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
@@ -35,12 +33,10 @@ export default function ManageUsers() {
     role: "student",
   });
 
-  // delete confirm modal
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [targetUser, setTargetUser] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // subscribe realtime
   useFocusEffect(
     useCallback(() => {
       const unsub = onSnapshot(collection(db, "users"), (snap) => {
@@ -53,7 +49,6 @@ export default function ManageUsers() {
   const fullName = (u) =>
     [u.firstName, u.lastName].filter(Boolean).join(" ").trim() || "-";
 
-  /* ===== Edit ===== */
   const openEdit = (u) => {
     setEditingId(u.id);
     setForm({
@@ -85,7 +80,6 @@ export default function ManageUsers() {
     }
   };
 
-  /* ===== Delete with make-sure modal ===== */
   const openConfirmDelete = (u) => {
     setTargetUser(u);
     setConfirmOpen(true);
@@ -99,7 +93,6 @@ export default function ManageUsers() {
   const doDelete = async () => {
     if (!targetUser) return;
 
-    // กันลบตัวเอง (โดยเฉพาะ admin ที่กำลังใช้งาน)
     const currentUid = auth?.currentUser?.uid;
     if (currentUid && targetUser.id === currentUid) {
       Alert.alert("ไม่สามารถลบตัวเองได้");
@@ -219,7 +212,6 @@ export default function ManageUsers() {
         </View>
       </Modal>
 
-      {/* ===== Delete Confirm Modal (Make sure) ===== */}
       <Modal transparent visible={confirmOpen} animationType="fade" onRequestClose={closeConfirm}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -245,7 +237,6 @@ export default function ManageUsers() {
           </View>
         </View>
       </Modal>
-      {/* ===== /Modals ===== */}
     </View>
   );
 }
@@ -289,7 +280,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "row" },
   actionBtn: { marginLeft: 10 },
 
-  // ===== Modal base =====
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,.35)",

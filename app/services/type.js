@@ -53,7 +53,6 @@ export const UserRoles = ["admin", "student"];
  * @property {BookingStatus} status
  */
 
-// ช่วงเวลา 4 สลอตคงที่
 export const SLOT_DEFS = [
   { id: "S1", startHour: 8,  endHour: 10, label: "08.00-10.00" },
   { id: "S2", startHour: 10, endHour: 12, label: "10.00-12.00" },

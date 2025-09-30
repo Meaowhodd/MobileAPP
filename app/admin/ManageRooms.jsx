@@ -25,9 +25,8 @@ export default function ManageRooms() {
   const router = useRouter();
   const [rooms, setRooms] = useState([]);
 
-  // confirm modal
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selected, setSelected] = useState(null); // {id, name, code, image}
+  const [selected, setSelected] = useState(null); 
 
   useFocusEffect(
     useCallback(() => {
@@ -141,7 +140,6 @@ export default function ManageRooms() {
   );
 }
 
-/* ===== Styles ===== */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
@@ -169,7 +167,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#ececf5",
-    // ใช้ทั้งเงอ native และเว็บ
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -198,7 +195,6 @@ const styles = StyleSheet.create({
 
   empty: { textAlign: "center", color: "#666", marginTop: 30 },
 
-  // Modal
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,.35)",
